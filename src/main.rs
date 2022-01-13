@@ -1,8 +1,6 @@
 use chrono::DateTime;
 use chrono::Local;
 use clap::Parser;
-use lazy_static::lazy_static;
-use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::to_string as to_json_string;
@@ -17,17 +15,10 @@ use std::io::Write;
 use std::ops::Add;
 use std::path::PathBuf;
 use std::process::exit;
-const NEW_CONTENT: &'static str = include_str!("../docs/new.md");
 #[derive(Parser)]
 #[clap(about, version, author)]
 struct Args {
     // Flags
-    /// Changes file-type mode to markdown
-    #[clap(long)]
-    markdown_mode: bool,
-    /// Changes file-type mode to json
-    #[clap(long)]
-    json_mode: bool,
     /// Creates a new list-item from item-text
     #[clap(short, long)]
     add: bool,
@@ -53,9 +44,9 @@ struct Args {
     #[clap(short, long)]
     verbose: bool,
     // Options
-    /// Selects an item within a list by number
+    /// Selects an item within a list or nested list by number
     #[clap(short, long)]
-    item: Option<i32>,
+    item: Option<Vec<i32>>,
     /// Selects a list by path (w/o file extension)
     #[clap(short, long)]
     list_path: Option<String>,
@@ -90,7 +81,7 @@ impl Args {
             self.q_print(msg);
         }
     }
-    fn c_exit(&mut self, code: ExitCode) -> ! {
+    fn exit(&mut self, code: ExitCode) -> ! {
         self.v_print(format!("{}", code));
         if !self.buffer.is_empty() {
             println!("{}", self.buffer);
@@ -104,7 +95,7 @@ impl Args {
             match chk {
                 PathExitCondition::Exists => {
                     if path.exists() {
-                        self.c_exit(ExitCode::FileExists(path));
+                        self.exit(ExitCode::FileExists(path));
                     }
                 },
                 PathExitCondition::NotExists => {
@@ -115,29 +106,13 @@ impl Args {
                                 &path.to_str().unwrap()
                             )
                         );
-                        self.c_exit(ExitCode::FileDoesNotExist(path));
+                        self.exit(ExitCode::FileDoesNotExist(path));
                     }
                 },
                 PathExitCondition::Ignore => {},
             }
         } else {
-            self.c_exit(ExitCode::NoListName);
-        }
-    }
-    fn is_markdown_mode(&mut self) -> bool {
-        if self.markdown_mode && self.json_mode {
-            self.c_exit(ExitCode::TooManyModes);
-        } else if (!self.markdown_mode && !self.json_mode) || self.markdown_mode {
-            true
-        } else {
-            false
-        }
-    }
-    fn get_ext(&mut self) -> String {
-        if self.is_markdown_mode() {
-            "md".to_owned()
-        } else {
-            "json".to_owned()
+            self.exit(ExitCode::NoListName);
         }
     }
 }
@@ -155,7 +130,6 @@ enum ExitCode<'exit> {
     FailedToOpen(&'exit mut PathBuf),
     FailedToDeserialize(serde_json::Error),
     FailedToSerialize(serde_json::Error),
-    TooManyModes,
 }
 impl<'exit> Into<i32> for ExitCode<'exit> {
     fn into(self) -> i32 {
@@ -173,7 +147,6 @@ impl<'exit> Into<i32> for ExitCode<'exit> {
             Self::FailedToOpen(_) => 12,
             Self::FailedToDeserialize(_) => 13,
             Self::FailedToSerialize(_) => 14,
-            Self::TooManyModes => 15,
         }
     }
 }
@@ -215,9 +188,6 @@ impl<'exit> Display for ExitCode<'exit> {
             Self::FailedToSerialize(e) => {
                 return f.write_str(&format!("Failed to serialize to json: {}", e));
             },
-            Self::TooManyModes => {
-                return f.write_str("Only one mode flag can be set");
-            },
         }
     }
 }
@@ -235,13 +205,46 @@ struct Item {
     last_updated: DateTime<Local>,
 }
 impl Item {
-    fn new(text: String) -> Self {
+    fn new(text: impl AsRef<str>) -> Self {
+        let txt = text.as_ref().to_string();
         Self {
             checked: false,
-            text,
+            text: txt,
             sub_items: Vec::new(),
             created: Local::now(),
             last_updated: Local::now(),
+        }
+    }
+    fn alter_check(&mut self, checked: bool, indices: &mut Vec<i32>) {
+        if indices.len().eq(&0) {
+            self.checked = checked;
+            self.last_updated = Local::now();
+        } else {
+            let index = indices.pop().unwrap();
+            let mut iter_c = 1;
+            for item in self.sub_items.iter_mut() {
+                if iter_c.eq(&index) {
+                    item.alter_check(checked, indices);
+                    break;
+                }
+                iter_c = iter_c + 1;
+            }
+        }
+    }
+    fn add_item(&mut self, indices: &mut Vec<i32>, message: impl AsRef<str>) {
+        if indices.len().eq(&0) {
+            self.sub_items.push(Self::new(message));
+            self.last_updated = Local::now();
+        } else {
+            let index = indices.pop().unwrap();
+            let mut iter_c = 1;
+            for item in self.sub_items.iter_mut() {
+                if iter_c.eq(&index) {
+                    item.add_item(indices, message);
+                    break;
+                }
+                iter_c = iter_c + 1;
+            }
         }
     }
     fn printable(&self, content: &mut String, index: &mut usize, level: &mut usize) {
@@ -257,8 +260,10 @@ impl Item {
         content.push_str(&format!(concat!(
             "{}{}. {} {}\n"
         ), indent, index, chked, self.text));
+        let mut sub_index = 1;
         for sub in self.sub_items.iter() {
-            sub.printable(content, &mut 0, &mut (level.add(1)));
+            sub.printable(content, &mut sub_index, &mut (level.add(1)));
+            sub_index = sub_index + 1;
         }
     }
 }
@@ -282,7 +287,7 @@ impl List {
         let list = match from_json_string(&json) {
             Ok(list) => list,
             Err(e) => {
-                ctx.c_exit(ExitCode::FailedToDeserialize(e));
+                ctx.exit(ExitCode::FailedToDeserialize(e));
             },
         };
         list
@@ -291,24 +296,55 @@ impl List {
         let json = match to_json_string(self) {
             Ok(json) => json,
             Err(e) => {
-                ctx.c_exit(ExitCode::FailedToSerialize(e));
+                ctx.exit(ExitCode::FailedToSerialize(e));
             },
         };
         json
     }
     fn printable(&mut self, content: &mut String) {
+        let created = self.created.format("%m/%d/%Y %H:%M:%S");
+        let updated = self.last_updated.format("%m/%d/%Y %H:%M:%S");
         content.push_str(
             &format!(concat!(
                 "Created On: {}\n",
                 "Last Edit : {}\n",
                 "\n",
-            ), self.created.to_rfc3339(), self.last_updated.to_rfc3339())
+            ), created, updated)
         );
         let mut level = 0;
         let mut index = 1;
         for item in self.items.iter() {
             item.printable(content, &mut index, &mut level);
             index = index.add(1);
+        }
+    }
+    fn alter_check_at(&mut self, checked: bool, indices: &mut Vec<i32>) {
+        let list_item_index = indices.pop().unwrap();
+        let mut iter_c = 1;
+        for act_item in self.items.iter_mut() {
+            if iter_c.eq(&list_item_index) {
+                act_item.alter_check(checked, indices);
+                self.last_updated = Local::now();
+                break;
+            }
+            iter_c = iter_c + 1;
+        }
+    }
+    fn add_item(&mut self, indices: &mut Vec<i32>, message: impl AsRef<str>) {
+        if indices.len().eq(&0) {
+            self.items.push(Item::new(message));
+            self.last_updated = Local::now();
+        } else {
+            let list_item_index = indices.pop().unwrap();
+            let mut iter_c = 1;
+            for act_item in self.items.iter_mut() {
+                if iter_c.eq(&list_item_index) {
+                    act_item.add_item(indices, message);
+                    self.last_updated = Local::now();
+                    break;
+                }
+                iter_c = iter_c + 1;
+            }
         }
     }
 }
@@ -319,13 +355,13 @@ struct Container {
 impl Container {
     fn create(ctx: &mut Args, path: &mut PathBuf) -> Self {
         if path.exists() {
-            ctx.c_exit(ExitCode::FileExists(path));
+            ctx.exit(ExitCode::FileExists(path));
         }
         { // file creation
             match File::create(&path) {
                 Ok(_) => {},
                 Err(_) => {
-                    ctx.c_exit(ExitCode::FailedToOpen(path));
+                    ctx.exit(ExitCode::FailedToOpen(path));
                 },
             };
         } // file unlocked
@@ -338,7 +374,7 @@ impl Container {
     }
     fn load(ctx: &mut Args, path: &mut PathBuf) -> Self {
         if !path.exists() {
-            ctx.c_exit(ExitCode::FileExists(path));
+            ctx.exit(ExitCode::FileExists(path));
         }
         let mut json = String::new();
         { // file read
@@ -347,12 +383,12 @@ impl Container {
                 .open(&path)
             {
                 Ok(f) => f,
-                Err(_) => ctx.c_exit(ExitCode::FailedToOpen(path)),
+                Err(_) => ctx.exit(ExitCode::FailedToOpen(path)),
             };
             match file.read_to_string(&mut json) {
                 Ok(_) => {},
                 Err(_) => {
-                    ctx.c_exit(ExitCode::FailedToRead(path));
+                    ctx.exit(ExitCode::FailedToRead(path));
                 },
             }
         } // file locked
@@ -365,6 +401,12 @@ impl Container {
             list,
         }
     }
+    fn check_at(&mut self, indices: &mut Vec<i32>) {
+        self.list.alter_check_at(true, indices);
+    }
+    fn uncheck_at(&mut self, indices: &mut Vec<i32>) {
+        self.list.alter_check_at(false, indices);
+    }
     fn save(&mut self, ctx: &mut Args) {
         let json = self.list.to_json(ctx);
         { // file open:write
@@ -375,12 +417,12 @@ impl Container {
                 .open(&self.path)
             {
                 Ok(f) => f,
-                Err(_) => ctx.c_exit(ExitCode::FailedToOpen(&mut self.path)),
+                Err(_) => ctx.exit(ExitCode::FailedToOpen(&mut self.path)),
             };
             match file.write_all(bytes) {
                 Ok(_) => {},
                 Err(_) => {
-                    ctx.c_exit(ExitCode::FailedToWrite(&mut self.path));
+                    ctx.exit(ExitCode::FailedToWrite(&mut self.path));
                 },
             }
         } // file locked
@@ -388,88 +430,30 @@ impl Container {
     fn printable(&mut self, content: &mut String) {
         self.list.printable(content);
     }
-}
-fn get_next_item_number(content: impl AsRef<str>) -> i32 {
-    lazy_static! {
-        static ref RE: Regex = Regex::new(
-            "([0-9]+)\\.\\s\\[(\\s|x)\\]"
-        ).unwrap();
-    }
-    let mut nums = Vec::new();
-    for found in RE.captures_iter(content.as_ref()) {
-        let num_str = found.get(1).unwrap().as_str();
-        let num = num_str.parse::<i32>().unwrap();
-        nums.push(num);
-    }
-    nums.sort();
-    return nums.last().unwrap_or(&0).clone() + 1;
-}
-fn update_last_edit(content: impl AsRef<str>, now: String) -> String {
-    let c = content.as_ref();
-    let start = c.find("Last Edit :").unwrap();
-    let subst = &c[start..];
-    let end = subst.find("\n").unwrap();
-    let date_line = &subst[0..end];
-    return c.replace(&date_line, &format!("Last Edit : {}", now)).clone();
-}
-fn get_now() -> String {
-    return Local::now().to_rfc3339();
-}
-fn get_content_from_file(ctx: &mut Args, path: &mut PathBuf) -> String {
-    let mut content = String::new();
-    {
-        let mut file = match File::open(&path) {
-            Ok(f) => f,
-            Err(_) => ctx.c_exit(ExitCode::FailedToOpen(path)),
-        };
-        match file.read_to_string(&mut content) {
-            Ok(_) => {},
-            Err(_) => ctx.c_exit(ExitCode::FailedToRead(path)),
-        }
-    }
-    return content;
-}
-fn overwrite_content(ctx: &mut Args, path: &mut PathBuf, content: String) {
-    let mut file = match OpenOptions::new()
-        .write(true)
-        .truncate(true)
-        .open(&path)
-    {
-        Ok(f) => f,
-        Err(_) => ctx.c_exit(ExitCode::FailedToOpen(path)),
-    };
-    match file.write_all(content.as_bytes()) {
-        Ok(_) => {},
-        Err(_) => ctx.c_exit(ExitCode::FailedToWrite(path)),
+    fn add_item(&mut self, indices: &mut Vec<i32>, message: impl AsRef<str>) {
+        self.list.add_item(indices, message);
     }
 }
-fn check_item(item: i32, content: impl AsRef<str>) -> String {
-    let c = content.as_ref();
-    return c.replacen(
-        &format!("{}. [ ]", item),
-        &format!("{}. [x]", item),
-        1
-    );
-}
-fn uncheck_item(item: i32, content: impl AsRef<str>) -> String {
-    let c = content.as_ref();
-    return c.replacen(
-        &format!("{}. [x]", item),
-        &format!("{}. [ ]", item),
-        1
-    );
+fn get_printable_coords(nums: &Vec<i32>) -> String {
+    nums.into_iter().map(|num| {
+        num.to_string()
+    }).collect::<Vec<String>>().join(", ").to_string()
 }
 fn main() {
     let mut ctx = Args::parse();
     if ctx.default_list {
         ctx.check_env();
     }
+    // reverse vector so that pop works
+    if ctx.item.is_some() {
+        let mut item = ctx.item.unwrap();
+        item.reverse();
+        ctx.item = Some(item);
+    }
     // print args if verbose
     ctx.v_print("==FLAGS==");
     ctx.v_print(format!("Add      : {}", ctx.add));
     ctx.v_print(format!("Check    : {}", ctx.check));
-    ctx.v_print(format!("JSON Mode: {}", ctx.json_mode));
-    ctx.v_print(format!("MD Mode  : {}", ctx.markdown_mode));
     ctx.v_print(format!("New      : {}", ctx.new));
     ctx.v_print(format!("Quiet    : {}", ctx.quiet));
     ctx.v_print(format!("Show     : {}", ctx.show));
@@ -482,33 +466,17 @@ fn main() {
         let list = ctx.list_path.clone().unwrap();
         ctx.v_print(format!("Creating new list \"{}\"", &list));
         let mut path = PathBuf::new();
-        let ext = ctx.get_ext();
-        ctx.get_path(&mut path, &ext, PathExitCondition::Exists);
-        if ctx.is_markdown_mode() {
-            let mut content: String = NEW_CONTENT.clone().into();
-            content = content.replace("[[C_DATE]]", &get_now());
-            content = content.replace("[[E_DATE]]", &get_now());
-            let mut file = match File::create(&path) {
-                Ok(f) => f,
-                Err(_) => ctx.c_exit(ExitCode::FileExists(&mut path)),
-            };
-            match file.write_all(content.as_bytes()) {
-                Ok(_) => {},
-                Err(_) => ctx.c_exit(ExitCode::FileExists(&mut path)),
-            }
-        } else {
-            let mut container = Container::create(&mut ctx, &mut path);
-            container.save(&mut ctx);
-        }
+        ctx.get_path(&mut path, "json", PathExitCondition::Exists);
+        let mut container = Container::create(&mut ctx, &mut path);
+        container.save(&mut ctx);
         ctx.v_print(format!("Created new list \"{}\"", &path.to_str().unwrap()));
     } else if ctx.new && ctx.list_path.is_none() {
         ctx.v_print("Missing name for list");
-        ctx.c_exit(ExitCode::NoListName);
+        ctx.exit(ExitCode::NoListName);
     }
     // add new list-item
     if ctx.add && ctx.list_path.is_some() && ctx.message.is_some() {
         let mut path = PathBuf::new();
-        let ext = ctx.get_ext();
         let list = ctx.list_path.clone().unwrap();
         let msg = ctx.message.clone().unwrap();
         ctx.v_print(
@@ -518,104 +486,66 @@ fn main() {
                 msg
             )
         );
-        ctx.get_path(&mut path, &ext, PathExitCondition::NotExists);
-        if ctx.is_markdown_mode() {
-            let mut content = get_content_from_file(&mut ctx, &mut path);
-            let num = get_next_item_number(&content);
-            content.push_str(&format!("\n{}. [ ] {}", num, msg));
-            content = update_last_edit(content, get_now());
-            overwrite_content(&mut ctx, &mut path, content);
+        ctx.get_path(&mut path, "json", PathExitCondition::NotExists);
+        let mut container = Container::load(&mut ctx, &mut path);
+        let item = if ctx.item.is_some() {
+            ctx.item.clone().unwrap()
         } else {
-            let mut container = Container::load(&mut ctx, &mut path);
-            container.list.items.push(Item::new(msg));
-            container.save(&mut ctx);
-        }
+            Vec::new()
+        };
+        container.add_item(&mut item.clone(), msg);
+        container.save(&mut ctx);
     } else if ctx.add && ctx.list_path.is_none() {
-        ctx.c_exit(ExitCode::NoListName);
+        ctx.exit(ExitCode::NoListName);
     } else if ctx.add && ctx.message.is_none() {
         let mut path = PathBuf::new();
         ctx.get_path(&mut path, "md", PathExitCondition::Ignore);
-        ctx.c_exit(ExitCode::NoListItemMessage(&mut path));
+        ctx.exit(ExitCode::NoListItemMessage(&mut path));
     }
     // check list item
     if ctx.check && ctx.list_path.is_some() && ctx.item.is_some() {
         let mut path = PathBuf::new();
         let list = ctx.list_path.clone().unwrap();
-        let ext = ctx.get_ext();
-        ctx.get_path(&mut path, ext, PathExitCondition::NotExists);
+        ctx.get_path(&mut path, "json", PathExitCondition::NotExists);
         let item = ctx.item.clone().unwrap();
-        ctx.v_print(format!("Checking item \"{}\" from list \"{}\"", item, list));
-        if ctx.is_markdown_mode() {
-            let mut content = get_content_from_file(&mut ctx, &mut path);
-            content = check_item(item, &content);
-            content = update_last_edit(&content, Local::now().to_rfc3339());
-            overwrite_content(&mut ctx, &mut path, content);
-        } else {
-            let mut container = Container::load(&mut ctx, &mut path);
-            let mut iter_c = 1;
-            for act_item in container.list.items.iter_mut() {
-                if iter_c.eq(&item) {
-                    act_item.checked = true;
-                    break;
-                }
-                iter_c = iter_c + 1;
-            }
-            container.save(&mut ctx);
-        }
-        ctx.v_print(format!("Checked item \"{}\" from list \"{}\"", item, list));
+        ctx.v_print(format!("Checking item \"{}\" from list \"{}\"", get_printable_coords(&item), list));
+        let mut container = Container::load(&mut ctx, &mut path);
+        container.check_at(&mut item.clone());
+        container.save(&mut ctx);
+        ctx.v_print(format!("Checked from list \"{}\"", list));
     } else if ctx.check && ctx.list_path.is_none() {
-        ctx.c_exit(ExitCode::NoListName);
+        ctx.exit(ExitCode::NoListName);
     } else if ctx.check && ctx.item.is_none() {
         let mut path = PathBuf::new();
         ctx.get_path(&mut path, "md", PathExitCondition::Ignore);
-        ctx.c_exit(ExitCode::NoListItemNumber(&mut path));
+        ctx.exit(ExitCode::NoListItemNumber(&mut path));
     }
     if ctx.uncheck && ctx.list_path.is_some() && ctx.item.is_some() {
         let mut path = PathBuf::new();
         let list = ctx.list_path.clone().unwrap();
-        let ext = ctx.get_ext();
-        ctx.get_path(&mut path, ext, PathExitCondition::NotExists);
+        ctx.get_path(&mut path, "json", PathExitCondition::NotExists);
         let item = ctx.item.clone().unwrap();
-        ctx.v_print(format!("Unchecking item \"{}\" from list \"{}\"", item, list));
-        if ctx.is_markdown_mode() {
-            let mut content = get_content_from_file(&mut ctx, &mut path);
-            content = uncheck_item(item, &content);
-            content = update_last_edit(&content, Local::now().to_rfc3339());
-            overwrite_content(&mut ctx, &mut path, content);
-        } else {
-            let mut container = Container::load(&mut ctx, &mut path);
-            let mut iter_c = 1;
-            for act_item in container.list.items.iter_mut() {
-                if iter_c.eq(&item) {
-                    act_item.checked = false;
-                    break;
-                }
-                iter_c = iter_c + 1;
-            }
-            container.save(&mut ctx);
-        }
-        ctx.v_print(format!("Unchecked item \"{}\" from list \"{}\"", item, list));
+        ctx.v_print(format!("Unchecking item \"{}\" from list \"{}\"", get_printable_coords(&item), list));
+        let mut container = Container::load(&mut ctx, &mut path);
+        container.uncheck_at(&mut item.clone());
+        container.save(&mut ctx);
+        ctx.v_print(format!("Unchecked from list \"{}\"", list));
     } else if ctx.uncheck && ctx.list_path.is_none() {
-        ctx.c_exit(ExitCode::NoListName);
+        ctx.exit(ExitCode::NoListName);
     } else if ctx.uncheck && ctx.item.is_none() {
         let mut path = PathBuf::new();
         ctx.get_path(&mut path, "md", PathExitCondition::Ignore);
-        ctx.c_exit(ExitCode::NoListItemNumber(&mut path));
+        ctx.exit(ExitCode::NoListItemNumber(&mut path));
     }
     if ctx.show && ctx.list_path.is_some() {
         let mut path = PathBuf::new();
-        let ext = ctx.get_ext();
-        ctx.get_path(&mut path, ext, PathExitCondition::NotExists);
+        ctx.get_path(&mut path, "json", PathExitCondition::NotExists);
         ctx.v_print("==FILE==");
         let mut content = String::new();
-        if ctx.is_markdown_mode() {
-            content = get_content_from_file(&mut ctx, &mut path);
-        } else {
-            let mut container = Container::load(&mut ctx, &mut path);
-            container.printable(&mut content);
-        }
+        let mut container = Container::load(&mut ctx, &mut path);
+        container.printable(&mut content);
         ctx.print(content);
         ctx.v_print("==/FILE==");
     }
-    ctx.c_exit(ExitCode::Success);
+    ctx.exit(ExitCode::Success);
 }
