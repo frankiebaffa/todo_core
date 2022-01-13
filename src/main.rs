@@ -305,8 +305,10 @@ impl List {
             ), self.created.to_rfc3339(), self.last_updated.to_rfc3339())
         );
         let mut level = 0;
+        let mut index = 1;
         for item in self.items.iter() {
-            item.printable(content, &mut 1, &mut level);
+            item.printable(content, &mut index, &mut level);
+            index = index.add(1);
         }
     }
 }
