@@ -1,4 +1,5 @@
 use clap::Parser;
+use crate::enums::PrintWhich;
 #[derive(Parser)]
 #[clap(about, version, author)]
 pub struct Args {
@@ -33,6 +34,9 @@ pub struct Args {
     /// Prints verbose messages during output
     #[clap(short, long)]
     pub verbose: bool,
+    /// Prints an overview of the list
+    #[clap(long)]
+    pub status: bool,
     // Options
     /// Selects an item within a list or nested list by number
     #[clap(short, long)]
@@ -43,4 +47,7 @@ pub struct Args {
     /// Adds an item to a list by message text
     #[clap(short, long)]
     pub message: Option<String>,
+    /// Prints only items with a specific status
+    #[clap(short, long, default_value_t = PrintWhich::All)]
+    pub print_which: PrintWhich,
 }
