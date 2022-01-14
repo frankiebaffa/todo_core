@@ -72,7 +72,7 @@ impl<'ctx> Ctx {
         };
     }
     pub fn print(&mut self, msg: impl AsRef<str>) {
-        self.buffer.push_str(&format!("\n{}", msg.as_ref()));
+        self.buffer.push_str(&format!("{}", msg.as_ref()));
     }
     pub fn q_print(&mut self, msg: impl AsRef<str>) {
         if !self.args.quiet {
@@ -87,7 +87,7 @@ impl<'ctx> Ctx {
     pub fn flush(&mut self, code: &ExitCode) {
         self.v_print(format!("{}", code));
         if !self.buffer.is_empty() {
-            println!("{}", self.buffer);
+            print!("{}", self.buffer);
         }
     }
     /// Checks if new list should be created
@@ -171,6 +171,16 @@ impl<'ctx> Ctx {
             Err(ExitCode::NoListItemNumber(self.path.clone()))
         } else if self.args.edit && self.args.message.is_none() {
             Err(ExitCode::NoListItemMessage(self.path.clone()))
+        } else {
+            Ok(false)
+        }
+    }
+    /// Checks if the list status should be displayed
+    pub fn status_mode(&mut self) -> Result<bool, ExitCode> {
+        if self.args.status && self.args.list_path.is_some() {
+            Ok(true)
+        } else if self.args.status && self.args.list_path.is_none() {
+            Err(ExitCode::NoListName)
         } else {
             Ok(false)
         }
