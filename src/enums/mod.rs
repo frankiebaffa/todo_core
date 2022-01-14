@@ -1,6 +1,7 @@
 use std::fmt::Display;
 use std::fmt::Error as FormatError;
 use std::fmt::Formatter;
+use std::str::FromStr;
 use std::path::PathBuf;
 pub enum ExitCode {
     Success,
@@ -81,4 +82,37 @@ pub enum PathExitCondition {
     Exists,
     NotExists,
     Ignore,
+}
+pub enum PrintWhich {
+    All,
+    Complete,
+    Incomplete,
+}
+impl Display for PrintWhich {
+    fn fmt(&self, fmt: &mut Formatter) -> Result<(), FormatError> {
+        match self {
+            Self::All => fmt.write_str("all"),
+            Self::Complete => fmt.write_str("complete"),
+            Self::Incomplete => fmt.write_str("incomplete"),
+        }
+    }
+}
+#[derive(Debug)]
+pub struct ParsePrintWhichError;
+impl Display for ParsePrintWhichError {
+    fn fmt(&self, fmt: &mut Formatter) -> Result<(), FormatError> {
+        fmt.write_str("Failed to parse str to PrintWhich")
+    }
+}
+impl std::error::Error for ParsePrintWhichError {}
+impl FromStr for PrintWhich {
+    type Err = ParsePrintWhichError;
+    fn from_str(input: &str) -> Result<Self, <Self as FromStr>::Err> {
+        match input {
+            "all" => Ok(PrintWhich::All),
+            "complete" => Ok(PrintWhich::Complete),
+            "incomplete" => Ok(PrintWhich::Incomplete),
+            _ => Err(ParsePrintWhichError {}),
+        }
+    }
 }

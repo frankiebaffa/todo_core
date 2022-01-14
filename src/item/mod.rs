@@ -1,5 +1,6 @@
 use chrono::DateTime;
 use chrono::Local;
+use crate::enums::PrintWhich;
 use serde::Deserialize;
 use serde::Serialize;
 use std::ops::Add;
@@ -90,7 +91,45 @@ impl Item {
             }
         }
     }
-    pub fn printable(&self, content: &mut String, index: &mut usize, level: &mut usize) {
+    fn has_complete(&self) -> bool {
+        if self.checked.eq(&true) {
+            return true;
+        }
+        for item in self.sub_items.iter() {
+            if item.has_complete() {
+                return true;
+            }
+        }
+        return false;
+    }
+    fn has_incomplete(&self) -> bool {
+        if self.checked.eq(&false) {
+            return true;
+        }
+        for item in self.sub_items.iter() {
+            if item.has_incomplete() {
+                return true;
+            }
+        }
+        return false;
+    }
+    pub fn printable(
+        &self, content: &mut String, index: &mut usize, level: &mut usize,
+        print_which: &PrintWhich
+    ) {
+        match print_which {
+            PrintWhich::All => {},
+            PrintWhich::Complete => {
+                if !self.has_complete() {
+                    return;
+                }
+            },
+            PrintWhich::Incomplete => {
+                if !self.has_incomplete() {
+                    return;
+                }
+            },
+        }
         let mut indent = String::new();
         for _ in 0..level.clone() {
             indent.push_str("    ");
@@ -105,8 +144,28 @@ impl Item {
         ), indent, index, chked, self.text));
         let mut sub_index = 1;
         for sub in self.sub_items.iter() {
-            sub.printable(content, &mut sub_index, &mut (level.add(1)));
+            sub.printable(content, &mut sub_index, &mut (level.add(1)), print_which);
             sub_index = sub_index + 1;
         }
+    }
+    pub fn count_complete(&self) -> i32 {
+        let mut counter = 0;
+        if self.checked {
+            counter = counter + 1;
+        }
+        for sub in self.sub_items.iter() {
+            counter = sub.count_complete();
+        }
+        counter
+    }
+    pub fn count_incomplete(&self) -> i32 {
+        let mut counter = 0;
+        if !self.checked {
+            counter = counter + 1;
+        }
+        for sub in self.sub_items.iter() {
+            counter = sub.count_incomplete();
+        }
+        counter
     }
 }

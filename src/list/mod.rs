@@ -1,7 +1,8 @@
 use chrono::DateTime;
 use chrono::Local;
-use crate::ExitCode;
-use crate::Item;
+use crate::enums::ExitCode;
+use crate::enums::PrintWhich;
+use crate::item::Item;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::from_str as from_json_string;
@@ -37,21 +38,63 @@ impl List {
         };
         Ok(json)
     }
-    pub fn printable(&mut self, content: &mut String) {
+    pub fn printable(&mut self, content: &mut String, print_which: &PrintWhich) {
         let created = self.created.format("%m/%d/%Y %H:%M:%S");
         let updated = self.last_updated.format("%m/%d/%Y %H:%M:%S");
         content.push_str(
             &format!(concat!(
                 "Created On: {}\n",
                 "Last Edit : {}\n",
-                "\n",
             ), created, updated)
         );
         let mut level = 0;
         let mut index = 1;
+        if self.items.len().eq(&0) {
+            content.push_str("There are no items in this list");
+            return;
+        }
         for item in self.items.iter() {
-            item.printable(content, &mut index, &mut level);
+            item.printable(content, &mut index, &mut level, print_which);
             index = index.add(1);
+        }
+    }
+    pub fn status(&mut self, content: &mut String, print_which: &PrintWhich) {
+        match print_which {
+            PrintWhich::All => {
+                content.push_str(&format!("Items: {}", self.items.len()));
+            },
+            _ => {},
+        }
+        if self.items.len().eq(&0) {
+            return;
+        }
+        let mut complete = 0;
+        let mut incomplete = 0;
+        for item in self.items.iter() {
+            match print_which {
+                PrintWhich::All => {
+                    complete = complete + item.count_complete();
+                    incomplete = incomplete + item.count_incomplete();
+                },
+                PrintWhich::Complete => {
+                    complete = complete + item.count_complete();
+                },
+                PrintWhich::Incomplete => {
+                    incomplete = incomplete + item.count_incomplete();
+                },
+            }
+        }
+        match print_which {
+            PrintWhich::All => {
+                content.push_str(&format!("\nComplete: {}", complete));
+                content.push_str(&format!("\nIncomplete: {}", incomplete));
+            },
+            PrintWhich::Complete => {
+                content.push_str(&format!("Complete: {}", complete));
+            },
+            PrintWhich::Incomplete => {
+                content.push_str(&format!("Incomplete: {}", incomplete));
+            },
         }
     }
     pub fn alter_check_at(&mut self, checked: bool, indices: &mut Vec<i32>) {
