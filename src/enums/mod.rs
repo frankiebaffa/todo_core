@@ -2,22 +2,22 @@ use std::fmt::Display;
 use std::fmt::Error as FormatError;
 use std::fmt::Formatter;
 use std::path::PathBuf;
-pub enum ExitCode<'exit> {
+pub enum ExitCode {
     Success,
     NoListName,
-    NoListItemMessage(&'exit mut PathBuf),
-    NoListItemNumber(&'exit mut PathBuf),
-    FileExists(&'exit mut PathBuf),
-    FileDoesNotExist(&'exit mut PathBuf),
-    //PathFailed(&'exit mut PathBuf),
-    //FileCreationFailed(&'exit mut PathBuf),
-    FailedToWrite(&'exit mut PathBuf),
-    FailedToRead(&'exit mut PathBuf),
-    FailedToOpen(&'exit mut PathBuf),
+    NoListItemMessage(PathBuf),
+    NoListItemNumber(PathBuf),
+    FileExists(PathBuf),
+    FileDoesNotExist(PathBuf),
+    //PathFailed(PathBuf),
+    //FileCreationFailed(PathBuf),
+    FailedToWrite(PathBuf),
+    FailedToRead(PathBuf),
+    FailedToOpen(PathBuf),
     FailedToDeserialize(serde_json::Error),
     FailedToSerialize(serde_json::Error),
 }
-impl<'exit> Into<i32> for ExitCode<'exit> {
+impl Into<i32> for ExitCode {
     fn into(self) -> i32 {
         match self {
             Self::Success => 0,
@@ -36,7 +36,7 @@ impl<'exit> Into<i32> for ExitCode<'exit> {
         }
     }
 }
-impl<'exit> Display for ExitCode<'exit> {
+impl Display for ExitCode {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
         match self {
             Self::Success => write!(f, "Success"),

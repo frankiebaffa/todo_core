@@ -12,6 +12,9 @@ pub struct Args {
     /// Uses the list-name defined in env-var TODO_LIST when a name is not passed
     #[clap(short, long)]
     pub default_list: bool,
+    /// Replaces text in a list-item by item-number with item-message
+    #[clap(short, long)]
+    pub edit: bool,
     /// Creates a new list
     #[clap(short, long)]
     pub new: bool,
@@ -21,6 +24,9 @@ pub struct Args {
     /// Silences all messages (overrides verbose flag)
     #[clap(short, long)]
     pub quiet: bool,
+    /// Removes a list-item by item-number
+    #[clap(short, long)]
+    pub remove: bool,
     /// Unchecks a list-item by item-number
     #[clap(short, long)]
     pub uncheck: bool,

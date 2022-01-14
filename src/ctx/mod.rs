@@ -3,27 +3,73 @@ use crate::args::Args;
 use crate::enums::ExitCode;
 use crate::enums::PathExitCondition;
 use std::path::PathBuf;
-use std::process::exit;
 pub struct Ctx {
     pub args: Args,
     pub buffer: String,
+    pub path: PathBuf,
 }
-impl Ctx {
-    pub fn init() -> Self {
-        let args = Args::parse();
-        let buffer = String::new();
-        Self { args, buffer, }
-    }
-    pub fn check_env(&mut self) {
-        match self.args.list_path {
+impl<'ctx> Ctx {
+    fn check_env(args: &mut Args) {
+        match args.list_path {
             Some(_) => {},
             None => {
                 match std::env::var("TODO_LIST") {
-                    Ok(v) => self.args.list_path = Some(v),
+                    Ok(v) => args.list_path = Some(v),
                     Err(_) => {},
                 }
             },
         }
+    }
+    fn construct_path(&mut self) -> Result<(), ExitCode> {
+        if self.args.list_path.is_some() {
+            let list = self.args.list_path.clone().unwrap();
+            self.path.push(format!("{}.{}", &list, "json"));
+            return Ok(());
+        } else {
+            return Err(ExitCode::NoListName);
+        }
+    }
+    pub fn init() -> Result<Self, ExitCode> {
+        let mut args = Args::parse();
+        if args.default_list {
+            Self::check_env(&mut args);
+        }
+        let buffer = String::new();
+        let path = PathBuf::new();
+        let mut ctx = Self { args, buffer, path, };
+        ctx.construct_path()?;
+        // reverse vector so that pop works
+        if ctx.args.item.is_some() {
+            let mut item = ctx.args.item.unwrap();
+            item.reverse();
+            ctx.args.item = Some(item);
+        }
+        Ok(ctx)
+    }
+    pub fn check_path(&mut self, condition: PathExitCondition) -> Result<(), ExitCode> {
+        match condition {
+            PathExitCondition::Exists => {
+                if self.path.exists() {
+                    return Err(ExitCode::FileExists(self.path.clone()));
+                } else {
+                    return Ok(());
+                }
+            },
+            PathExitCondition::NotExists => {
+                if !self.path.exists() {
+                    self.v_print(
+                        format!(
+                            "File at \"{}\" does not exist",
+                            &self.path.to_str().unwrap()
+                        )
+                    );
+                    return Err(ExitCode::FileDoesNotExist(self.path.clone()));
+                } else {
+                    return Ok(());
+                }
+            },
+            PathExitCondition::Ignore => return Ok(()),
+        };
     }
     pub fn print(&mut self, msg: impl AsRef<str>) {
         self.buffer.push_str(&format!("\n{}", msg.as_ref()));
@@ -38,38 +84,95 @@ impl Ctx {
             self.q_print(msg);
         }
     }
-    pub fn exit(&mut self, code: ExitCode) -> ! {
+    pub fn flush(&mut self, code: &ExitCode) {
         self.v_print(format!("{}", code));
         if !self.buffer.is_empty() {
             println!("{}", self.buffer);
         }
-        exit(code.into());
     }
-    pub fn get_path(&mut self, path: &mut PathBuf, ext: impl AsRef<str>, chk: PathExitCondition) {
-        if self.args.list_path.is_some() {
-            let list = self.args.list_path.clone().unwrap();
-            path.push(format!("{}.{}", &list, ext.as_ref()));
-            match chk {
-                PathExitCondition::Exists => {
-                    if path.exists() {
-                        self.exit(ExitCode::FileExists(path));
-                    }
-                },
-                PathExitCondition::NotExists => {
-                    if !path.exists() {
-                        self.v_print(
-                            format!(
-                                "File at \"{}\" does not exist",
-                                &path.to_str().unwrap()
-                            )
-                        );
-                        self.exit(ExitCode::FileDoesNotExist(path));
-                    }
-                },
-                PathExitCondition::Ignore => {},
-            }
+    /// Checks if new list should be created
+    pub fn new_list_mode(&mut self) -> Result<bool, ExitCode> {
+        if self.args.new && self.args.list_path.is_some() {
+            Ok(true)
+        } else if self.args.new && self.args.list_path.is_none() {
+            self.v_print("Missing name for list");
+            Err(ExitCode::NoListName)
         } else {
-            self.exit(ExitCode::NoListName);
+            Ok(false)
+        }
+    }
+    /// Checks if new list item should be created
+    pub fn new_item_mode(&mut self) -> Result<bool, ExitCode> {
+        if self.args.add && self.args.list_path.is_some() && self.args.message.is_some() {
+            Ok(true)
+        } else if self.args.add && self.args.list_path.is_none() {
+            Err(ExitCode::NoListName)
+        } else if self.args.add && self.args.message.is_none() {
+            Err(ExitCode::NoListItemMessage(self.path.clone()))
+        } else {
+            Ok(false)
+        }
+    }
+    /// Checks if existing list item should be checked
+    pub fn check_item_mode(&mut self) -> Result<bool, ExitCode> {
+        if self.args.check && self.args.list_path.is_some() && self.args.item.is_some() {
+            Ok(true)
+        } else if self.args.check && self.args.list_path.is_none() {
+            Err(ExitCode::NoListName)
+        } else if self.args.check && self.args.item.is_none() {
+            Err(ExitCode::NoListItemNumber(self.path.clone()))
+        } else {
+            Ok(false)
+        }
+    }
+    /// Checks if existing list item should be checked
+    pub fn uncheck_item_mode(&mut self) -> Result<bool, ExitCode> {
+        if self.args.uncheck && self.args.list_path.is_some() && self.args.item.is_some() {
+            Ok(true)
+        } else if self.args.uncheck && self.args.list_path.is_none() {
+            Err(ExitCode::NoListName)
+        } else if self.args.uncheck && self.args.item.is_none() {
+            Err(ExitCode::NoListItemNumber(self.path.clone()))
+        } else {
+            Ok(false)
+        }
+    }
+    /// Checks if list should be displayed
+    pub fn show_mode(&mut self) -> Result<bool, ExitCode> {
+        if self.args.show && self.args.list_path.is_some() {
+            Ok(true)
+        } else if self.args.show && self.args.list_path.is_none() {
+            Err(ExitCode::NoListName)
+        } else {
+            Ok(false)
+        }
+    }
+    /// Checks if list item should be removed
+    pub fn remove_mode(&mut self) -> Result<bool, ExitCode> {
+        if self.args.remove && self.args.list_path.is_some() && self.args.item.is_some() {
+            Ok(true)
+        } else if self.args.remove && self.args.list_path.is_none() {
+            Err(ExitCode::NoListName)
+        } else if self.args.remove && self.args.item.is_none() {
+            Err(ExitCode::NoListItemNumber(self.path.clone()))
+        } else {
+            Ok(false)
+        }
+    }
+    /// Checks if list item should be edited
+    pub fn edit_mode(&mut self) -> Result<bool, ExitCode> {
+        if self.args.edit && self.args.list_path.is_some() &&
+            self.args.item.is_some() && self.args.message.is_some()
+        {
+            Ok(true)
+        } else if self.args.edit && self.args.list_path.is_none() {
+            Err(ExitCode::NoListName)
+        } else if self.args.edit && self.args.item.is_none() {
+            Err(ExitCode::NoListItemNumber(self.path.clone()))
+        } else if self.args.edit && self.args.message.is_none() {
+            Err(ExitCode::NoListItemMessage(self.path.clone()))
+        } else {
+            Ok(false)
         }
     }
 }

@@ -1,6 +1,5 @@
 use chrono::DateTime;
 use chrono::Local;
-use crate::Ctx;
 use crate::ExitCode;
 use crate::Item;
 use serde::Deserialize;
@@ -24,23 +23,19 @@ impl List {
             last_updated: Local::now(),
         }
     }
-    pub fn from_json(ctx: &mut Ctx, json: String) -> Self {
+    pub fn from_json(json: String) -> Result<Self, ExitCode> {
         let list = match from_json_string(&json) {
             Ok(list) => list,
-            Err(e) => {
-                ctx.exit(ExitCode::FailedToDeserialize(e));
-            },
+            Err(e) => return Err(ExitCode::FailedToDeserialize(e)),
         };
-        list
+        Ok(list)
     }
-    pub fn to_json(&self, ctx: &mut Ctx) -> String {
+    pub fn to_json(&self) -> Result<String, ExitCode> {
         let json = match to_json_string(self) {
             Ok(json) => json,
-            Err(e) => {
-                ctx.exit(ExitCode::FailedToSerialize(e));
-            },
+            Err(e) => return Err(ExitCode::FailedToSerialize(e)),
         };
-        json
+        Ok(json)
     }
     pub fn printable(&mut self, content: &mut String) {
         let created = self.created.format("%m/%d/%Y %H:%M:%S");
@@ -81,6 +76,36 @@ impl List {
             for act_item in self.items.iter_mut() {
                 if iter_c.eq(&list_item_index) {
                     act_item.add_item(indices, message);
+                    self.last_updated = Local::now();
+                    break;
+                }
+                iter_c = iter_c + 1;
+            }
+        }
+    }
+    pub fn edit_at(&mut self, indices: &mut Vec<i32>, message: impl AsRef<str>) {
+        let list_item_index = indices.pop().unwrap();
+        let mut iter_c = 1;
+        for act_item in self.items.iter_mut() {
+            if iter_c.eq(&list_item_index) {
+                act_item.edit_at(indices, message);
+                self.last_updated = Local::now();
+                break;
+            }
+            iter_c = iter_c + 1;
+        }
+    }
+    pub fn remove_at(&mut self, indices: &mut Vec<i32>) {
+        if indices.len().eq(&1) {
+            let index = indices.get(0).unwrap().to_string().parse::<usize>().unwrap();
+            self.items.remove(index-1);
+            self.last_updated = Local::now();
+        } else {
+            let list_item_index = indices.pop().unwrap();
+            let mut iter_c = 1;
+            for act_item in self.items.iter_mut() {
+                if iter_c.eq(&list_item_index) {
+                    act_item.remove_at(indices);
                     self.last_updated = Local::now();
                     break;
                 }

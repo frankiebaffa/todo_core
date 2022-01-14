@@ -54,6 +54,42 @@ impl Item {
             }
         }
     }
+    pub fn edit(&mut self, message: impl AsRef<str>) {
+        self.text = message.as_ref().to_string();
+    }
+    pub fn edit_at(&mut self, indices: &mut Vec<i32>, message: impl AsRef<str>) {
+        if indices.len().eq(&0) {
+            self.edit(message);
+            self.last_updated = Local::now();
+        } else {
+            let index = indices.pop().unwrap();
+            let mut iter_c = 1;
+            for item in self.sub_items.iter_mut() {
+                if iter_c.eq(&index) {
+                    item.edit_at(indices, message);
+                    break;
+                }
+                iter_c = iter_c + 1;
+            }
+        }
+    }
+    pub fn remove_at(&mut self, indices: &mut Vec<i32>) {
+        if indices.len().eq(&1) {
+            let index = indices.get(0).unwrap().to_string().parse::<usize>().unwrap();
+            self.sub_items.remove(index-1);
+            self.last_updated = Local::now();
+        } else {
+            let index = indices.pop().unwrap();
+            let mut iter_c = 1;
+            for item in self.sub_items.iter_mut() {
+                if iter_c.eq(&index) {
+                    item.remove_at(indices);
+                    break;
+                }
+                iter_c = iter_c + 1;
+            }
+        }
+    }
     pub fn printable(&self, content: &mut String, index: &mut usize, level: &mut usize) {
         let mut indent = String::new();
         for _ in 0..level.clone() {
