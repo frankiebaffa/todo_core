@@ -140,7 +140,7 @@ impl Item {
             "[ ]"
         };
         content.push_str(&format!(concat!(
-            "{}{}. {} {}\n"
+            "{}{}. {} {}"
         ), indent, index, chked, self.text));
         let mut sub_index = 1;
         for sub in self.sub_items.iter() {

@@ -72,6 +72,10 @@ impl<'ctx> Ctx {
         };
     }
     pub fn print(&mut self, msg: impl AsRef<str>) {
+        if !self.buffer.is_empty() {
+            // TODO: Fix buffer line breaking
+            self.buffer.push_str("\n");
+        }
         self.buffer.push_str(&format!("{}", msg.as_ref()));
     }
     pub fn q_print(&mut self, msg: impl AsRef<str>) {
@@ -87,7 +91,7 @@ impl<'ctx> Ctx {
     pub fn flush(&mut self, code: &ExitCode) {
         self.v_print(format!("{}", code));
         if !self.buffer.is_empty() {
-            print!("{}", self.buffer);
+            println!("{}", self.buffer);
         }
     }
     /// Checks if new list should be created

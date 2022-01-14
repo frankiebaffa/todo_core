@@ -44,7 +44,7 @@ impl List {
         content.push_str(
             &format!(concat!(
                 "Created On: {}\n",
-                "Last Edit : {}\n",
+                "Last Edit : {}",
             ), created, updated)
         );
         let mut level = 0;
@@ -86,8 +86,8 @@ impl List {
         }
         match print_which {
             PrintWhich::All => {
-                content.push_str(&format!("\nComplete: {}", complete));
-                content.push_str(&format!("\nIncomplete: {}", incomplete));
+                content.push_str(&format!("Complete: {}", complete));
+                content.push_str(&format!("Incomplete: {}", incomplete));
             },
             PrintWhich::Complete => {
                 content.push_str(&format!("Complete: {}", complete));
