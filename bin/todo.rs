@@ -161,9 +161,26 @@ fn main() {
                 let mut content = String::new();
                 let mut container = Container::load(&mut ctx)
                     .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-                container.printable(&mut content);
+                container.print(&mut content, &ctx.args.print_which);
                 ctx.print(content);
                 ctx.v_print("==/FILE==");
+            }
+        },
+        Err(e) => safe_exit(&mut ctx, e),
+    }
+    // display status
+    match ctx.status_mode() {
+        Ok(is) => {
+            if is {
+                ctx.check_path(PathExitCondition::NotExists)
+                    .unwrap_or_else(|e| safe_exit(&mut ctx, e));
+                ctx.v_print("==STATUS==");
+                let mut content = String::new();
+                let mut container = Container::load(&mut ctx)
+                    .unwrap_or_else(|e| safe_exit(&mut ctx, e));
+                container.status(&mut content, &ctx.args.print_which);
+                ctx.print(content);
+                ctx.v_print("==/STATUS==");
             }
         },
         Err(e) => safe_exit(&mut ctx, e),
