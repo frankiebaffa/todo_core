@@ -158,9 +158,9 @@ fn main() {
                 ctx.check_path(PathExitCondition::NotExists)
                     .unwrap_or_else(|e| safe_exit(&mut ctx, e));
                 ctx.v_print("==FILE==");
-                let mut content = String::new();
                 let mut container = Container::load(&mut ctx)
                     .unwrap_or_else(|e| safe_exit(&mut ctx, e));
+                let mut content = String::new();
                 container.print(&mut content, &ctx.args.print_which);
                 ctx.print(content);
                 ctx.v_print("==/FILE==");

@@ -139,9 +139,7 @@ impl Item {
         } else {
             "[ ]"
         };
-        content.push_str(&format!(concat!(
-            "{}{}. {} {}"
-        ), indent, index, chked, self.text));
+        content.push_str(&format!("\n{}{}. {} {}", indent, index, chked, self.text));
         let mut sub_index = 1;
         for sub in self.sub_items.iter() {
             sub.printable(content, &mut sub_index, &mut (level.add(1)), print_which);

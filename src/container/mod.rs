@@ -91,7 +91,7 @@ impl Container {
         self.list.add_item(indices, message);
     }
     pub fn print(&mut self, content: &mut String, print_which: &PrintWhich) {
-        self.list.printable(content, print_which);
+        self.list.print(content, print_which);
     }
     pub fn status(&mut self, content: &mut String, print_which: &PrintWhich) {
         self.list.status(content, print_which);

@@ -38,19 +38,15 @@ impl List {
         };
         Ok(json)
     }
-    pub fn printable(&mut self, content: &mut String, print_which: &PrintWhich) {
+    pub fn print(&mut self, content: &mut String, print_which: &PrintWhich) {
         let created = self.created.format("%m/%d/%Y %H:%M:%S");
         let updated = self.last_updated.format("%m/%d/%Y %H:%M:%S");
-        content.push_str(
-            &format!(concat!(
-                "Created On: {}\n",
-                "Last Edit : {}",
-            ), created, updated)
-        );
+        content.push_str(&format!("Created On: {}", created));
+        content.push_str(&format!("\nLast Edit : {}", updated));
         let mut level = 0;
         let mut index = 1;
         if self.items.len().eq(&0) {
-            content.push_str("There are no items in this list");
+            content.push_str("\nThere are no items in this list");
             return;
         }
         for item in self.items.iter() {
@@ -86,14 +82,14 @@ impl List {
         }
         match print_which {
             PrintWhich::All => {
-                content.push_str(&format!("Complete: {}", complete));
-                content.push_str(&format!("Incomplete: {}", incomplete));
+                content.push_str(&format!("\nComplete: {}", complete));
+                content.push_str(&format!("\nIncomplete: {}", incomplete));
             },
             PrintWhich::Complete => {
-                content.push_str(&format!("Complete: {}", complete));
+                content.push_str(&format!("\nComplete: {}", complete));
             },
             PrintWhich::Incomplete => {
-                content.push_str(&format!("Incomplete: {}", incomplete));
+                content.push_str(&format!("\nIncomplete: {}", incomplete));
             },
         }
     }
