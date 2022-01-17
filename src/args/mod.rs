@@ -35,7 +35,7 @@ pub struct Args {
     #[clap(short, long)]
     pub verbose: bool,
     /// Prints an overview of the list
-    #[clap(long)]
+    #[clap(short='t', long)]
     pub status: bool,
     // Options
     /// Selects an item within a list or nested list by number
