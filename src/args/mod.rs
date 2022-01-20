@@ -1,5 +1,6 @@
 use clap::Parser;
 use crate::enums::PrintWhich;
+use crate::enums::ItemType;
 #[derive(Parser)]
 #[clap(about, version, author)]
 pub struct Args {
@@ -50,4 +51,7 @@ pub struct Args {
     /// Prints only items with a specific status
     #[clap(short, long, default_value_t = PrintWhich::All)]
     pub print_which: PrintWhich,
+    /// Adds an item by type
+    #[clap(short='y', long, default_value_t = ItemType::Todo)]
+    pub item_type: ItemType,
 }

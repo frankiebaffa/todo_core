@@ -1,6 +1,7 @@
 use crate::ctx::Ctx;
 use crate::enums::ExitCode;
 use crate::enums::PrintWhich;
+use crate::enums::ItemType;
 use crate::list::List;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -87,8 +88,11 @@ impl Container {
         } // file locked
         Ok(())
     }
-    pub fn add_item(&mut self, indices: &mut Vec<i32>, message: impl AsRef<str>) {
-        self.list.add_item(indices, message);
+    pub fn add_item(
+        &mut self, item_type: ItemType, indices: &mut Vec<i32>,
+        message: impl AsRef<str>
+    ) {
+        self.list.add_item(item_type, indices, message);
     }
     pub fn print(&mut self, content: &mut String, print_which: &PrintWhich) {
         self.list.print(content, print_which);

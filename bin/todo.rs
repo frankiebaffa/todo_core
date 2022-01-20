@@ -63,7 +63,7 @@ fn main() {
                 } else {
                     Vec::new()
                 };
-                container.add_item(&mut item.clone(), msg);
+                container.add_item(ctx.args.item_type.clone(), &mut item.clone(), msg);
                 container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
             }
         },

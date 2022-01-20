@@ -1,3 +1,5 @@
+use serde::Deserialize;
+use serde::Serialize;
 use std::fmt::Display;
 use std::fmt::Error as FormatError;
 use std::fmt::Formatter;
@@ -113,6 +115,37 @@ impl FromStr for PrintWhich {
             "complete" => Ok(PrintWhich::Complete),
             "incomplete" => Ok(PrintWhich::Incomplete),
             _ => Err(ParsePrintWhichError {}),
+        }
+    }
+}
+#[derive(Serialize, Deserialize, PartialEq, Clone)]
+pub enum ItemType {
+    Todo,
+    Note,
+}
+impl Display for ItemType {
+    fn fmt(&self, fmt: &mut Formatter) -> Result<(), FormatError> {
+        match self {
+            Self::Todo => fmt.write_str("todo"),
+            Self::Note => fmt.write_str("note"),
+        }
+    }
+}
+#[derive(Debug)]
+pub struct ParseItemTypeError;
+impl Display for ParseItemTypeError {
+    fn fmt(&self, fmt: &mut Formatter) -> Result<(), FormatError> {
+        fmt.write_str("Failed to parse str to ItemType")
+    }
+}
+impl std::error::Error for ParseItemTypeError {}
+impl FromStr for ItemType {
+    type Err = ParseItemTypeError;
+    fn from_str(input: &str) -> Result<Self, <Self as FromStr>::Err> {
+        match input {
+            "todo" => Ok(Self::Todo),
+            "note" => Ok(Self::Note),
+            _ => Err(ParseItemTypeError {}),
         }
     }
 }

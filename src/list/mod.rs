@@ -2,6 +2,7 @@ use chrono::DateTime;
 use chrono::Local;
 use crate::enums::ExitCode;
 use crate::enums::PrintWhich;
+use crate::enums::ItemType;
 use crate::item::Item;
 use serde::Deserialize;
 use serde::Serialize;
@@ -105,16 +106,16 @@ impl List {
             iter_c = iter_c + 1;
         }
     }
-    pub fn add_item(&mut self, indices: &mut Vec<i32>, message: impl AsRef<str>) {
+    pub fn add_item(&mut self, item_type: ItemType, indices: &mut Vec<i32>, message: impl AsRef<str>) {
         if indices.len().eq(&0) {
-            self.items.push(Item::new(message));
+            self.items.push(Item::new(item_type, message));
             self.last_updated = Local::now();
         } else {
             let list_item_index = indices.pop().unwrap();
             let mut iter_c = 1;
             for act_item in self.items.iter_mut() {
                 if iter_c.eq(&list_item_index) {
-                    act_item.add_item(indices, message);
+                    act_item.add_item(item_type, indices, message);
                     self.last_updated = Local::now();
                     break;
                 }

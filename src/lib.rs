@@ -9,6 +9,7 @@ pub use container::Container;
 pub use ctx::Ctx;
 pub use enums::ExitCode;
 pub use enums::PathExitCondition;
+pub use enums::ItemType;
 pub use item::Item;
 pub use list::List;
 pub use utils::get_printable_coords;
