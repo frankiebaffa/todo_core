@@ -1,57 +1,79 @@
 use clap::Parser;
+use clap::Subcommand;
 use crate::enums::PrintWhich;
 use crate::enums::ItemType;
+#[derive(Parser, Clone)]
+pub struct AddArgs {
+    #[clap(short='i', long)]
+    pub item_nest_location: Option<Vec<i32>>,
+    #[clap(short='m', long)]
+    pub item_message: String,
+    #[clap(short='t', long, default_value_t = ItemType::Todo)]
+    pub item_type: ItemType,
+}
+#[derive(Parser, Clone)]
+pub struct CheckArgs {
+    #[clap(short='i', long)]
+    pub item_location: Vec<i32>,
+}
+#[derive(Parser, Clone)]
+pub struct EditArgs {
+    #[clap(short='i', long)]
+    pub item_location: Vec<i32>,
+    #[clap(short='m', long)]
+    pub item_message: String,
+}
+#[derive(Parser, Clone)]
+pub struct MoveArgs {
+    #[clap(short='i', long)]
+    pub item_location: Vec<i32>,
+    #[clap(short='o', long)]
+    pub output_location: Vec<i32>,
+}
+#[derive(Parser, Clone)]
+pub struct ShowArgs {
+    #[clap(short='p', long, default_value_t = PrintWhich::All)]
+    pub print_which: PrintWhich,
+    #[clap(short='s', long)]
+    pub status: bool,
+}
+#[derive(Parser, Clone)]
+pub struct RemoveArgs {
+    #[clap(short='i', long)]
+    pub item_location: Vec<i32>,
+}
+#[derive(Parser, Clone)]
+pub struct UncheckArgs {
+    #[clap(short='i', long)]
+    pub item_location: Vec<i32>,
+}
+#[derive(Subcommand, Clone)]
+#[clap(about, version, author)]
+pub enum Mode {
+    Add(AddArgs),
+    Check(CheckArgs),
+    Edit(EditArgs),
+    Move(MoveArgs),
+    New,
+    Show(ShowArgs),
+    Remove(RemoveArgs),
+    Uncheck(UncheckArgs),
+}
 #[derive(Parser)]
 #[clap(about, version, author)]
 pub struct Args {
-    // Flags
-    /// Creates a new list-item from item-text
-    #[clap(short, long)]
-    pub add: bool,
-    /// Checks off a list-item by item-number
-    #[clap(short, long)]
-    pub check: bool,
-    /// Uses the list-name defined in env-var TODO_LIST when a name is not passed
-    #[clap(short, long)]
-    pub default_list: bool,
-    /// Replaces text in a list-item by item-number with item-message
-    #[clap(short, long)]
-    pub edit: bool,
-    /// Creates a new list
-    #[clap(short, long)]
-    pub new: bool,
-    /// Displays list by name
-    #[clap(short, long)]
-    pub show: bool,
-    /// Silences all messages (overrides verbose flag)
-    #[clap(short, long)]
-    pub quiet: bool,
-    /// Removes a list-item by item-number
-    #[clap(short, long)]
-    pub remove: bool,
-    /// Unchecks a list-item by item-number
-    #[clap(short, long)]
-    pub uncheck: bool,
-    /// Prints verbose messages during output
-    #[clap(short, long)]
-    pub verbose: bool,
-    /// Prints an overview of the list
-    #[clap(short='t', long)]
-    pub status: bool,
     // Options
-    /// Selects an item within a list or nested list by number
-    #[clap(short, long)]
-    pub item: Option<Vec<i32>>,
-    /// Selects a list by path (w/o file extension)
-    #[clap(short, long)]
-    pub list_path: Option<String>,
-    /// Adds an item to a list by message text
-    #[clap(short, long)]
-    pub message: Option<String>,
-    /// Prints only items with a specific status
-    #[clap(short, long, default_value_t = PrintWhich::All)]
-    pub print_which: PrintWhich,
-    /// Adds an item by type
-    #[clap(short='y', long, default_value_t = ItemType::Todo)]
-    pub item_type: ItemType,
+    /// The relative or absolute path to the list (w/o file extension)
+    #[clap(short='l', long)]
+    pub list_path: String,
+    // Flags
+    /// Silences all messages (overrides verbose flag)
+    #[clap(short='q', long)]
+    pub quiet: bool,
+    /// Prints verbose messages during output
+    #[clap(short='v', long)]
+    pub verbose: bool,
+    // Modes
+    #[clap(subcommand)]
+    pub mode: Mode,
 }

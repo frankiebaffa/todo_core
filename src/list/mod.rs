@@ -135,22 +135,48 @@ impl List {
             iter_c = iter_c + 1;
         }
     }
-    pub fn remove_at(&mut self, indices: &mut Vec<i32>) {
+    pub fn remove_at(&mut self, indices: &mut Vec<i32>) -> Option<Item> {
         if indices.len().eq(&1) {
-            let index = indices.get(0).unwrap().to_string().parse::<usize>().unwrap();
-            self.items.remove(index-1);
+            let item = self.items.remove(
+                (indices.get(0).unwrap().to_owned() as usize) - 1
+            );
             self.last_updated = Local::now();
+            return Some(item);
         } else {
             let list_item_index = indices.pop().unwrap();
-            let mut iter_c = 1;
-            for act_item in self.items.iter_mut() {
-                if iter_c.eq(&list_item_index) {
-                    act_item.remove_at(indices);
+            for iter_loc in 1..self.items.len() + 1 {
+                if iter_loc.eq(&(list_item_index as usize)) {
+                    let act_item = self.items.get_mut(iter_loc - 1).unwrap();
+                    let item = act_item.remove_at(indices);
                     self.last_updated = Local::now();
-                    break;
+                    return item;
                 }
-                iter_c = iter_c + 1;
+            }
+            return None;
+        }
+    }
+    fn put_item_at(&mut self, out_loc: &mut Vec<i32>, item: Item) {
+        if out_loc.len().eq(&0) {
+            self.items.push(item);
+            self.last_updated = Local::now();
+            return;
+        } else {
+            let index = out_loc.pop().unwrap();
+            for iter_loc in 1..self.items.len() + 1 {
+                if iter_loc.eq(&(index as usize)) {
+                    let curr_item = self.items.get_mut(iter_loc - 1).unwrap();
+                    curr_item.put_item_at(out_loc, item);
+                    self.last_updated = Local::now();
+                    return;
+                }
             }
         }
+    }
+    pub fn move_from_to(&mut self, in_loc: &mut Vec<i32>, out_loc: &mut Vec<i32>) {
+        let rem_item = match self.remove_at(&mut in_loc.clone()) {
+            Some(item) => item,
+            None => return,
+        };
+        self.put_item_at(out_loc, rem_item);
     }
 }

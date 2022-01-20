@@ -69,6 +69,9 @@ impl Container {
     pub fn remove_at(&mut self, indices: &mut Vec<i32>) {
         self.list.remove_at(indices);
     }
+    pub fn move_from_to(&mut self, in_loc: &mut Vec<i32>, out_loc: &mut Vec<i32>) {
+        self.list.move_from_to(in_loc, out_loc);
+    }
     pub fn save(&mut self) -> Result<(), ExitCode> {
         let json = self.list.to_json()?;
         { // file open:write

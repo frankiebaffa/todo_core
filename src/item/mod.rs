@@ -80,20 +80,36 @@ impl Item {
             }
         }
     }
-    pub fn remove_at(&mut self, indices: &mut Vec<i32>) {
+    pub fn remove_at(&mut self, indices: &mut Vec<i32>) -> Option<Item> {
         if indices.len().eq(&1) {
             let index = indices.get(0).unwrap().to_string().parse::<usize>().unwrap();
-            self.sub_items.remove(index-1);
+            let item = self.sub_items.remove(index-1);
             self.last_updated = Local::now();
+            return Some(item);
         } else {
             let index = indices.pop().unwrap();
-            let mut iter_c = 1;
-            for item in self.sub_items.iter_mut() {
-                if iter_c.eq(&index) {
-                    item.remove_at(indices);
-                    break;
+            for iter_loc in 1..self.sub_items.len() + 1 {
+                if iter_loc.eq(&(index as usize)) {
+                    let item = self.sub_items.get_mut(iter_loc).unwrap();
+                    return item.remove_at(indices);
                 }
-                iter_c = iter_c + 1;
+            }
+            return None;
+        }
+    }
+    pub fn put_item_at(&mut self, indices: &mut Vec<i32>, item: Item) {
+        if indices.len().eq(&0) {
+            self.sub_items.push(item);
+            self.last_updated = Local::now();
+            return;
+        } else {
+            let index = indices.pop().unwrap().to_owned();
+            for iter_loc in 1..self.sub_items.len() + 1 {
+                if iter_loc.eq(&(index as usize)) {
+                    let sub_item = self.sub_items.get_mut(iter_loc).unwrap();
+                    sub_item.put_item_at(indices, item);
+                    return;
+                }
             }
         }
     }

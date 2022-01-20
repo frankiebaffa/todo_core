@@ -1,5 +1,6 @@
 use clap::Parser;
 use crate::args::Args;
+use crate::args::Mode;
 use crate::enums::ExitCode;
 use crate::enums::PathExitCondition;
 use std::path::PathBuf;
@@ -9,41 +10,30 @@ pub struct Ctx {
     pub path: PathBuf,
 }
 impl<'ctx> Ctx {
-    fn check_env(args: &mut Args) {
-        match args.list_path {
-            Some(_) => {},
-            None => {
-                match std::env::var("TODO_LIST") {
-                    Ok(v) => args.list_path = Some(v),
-                    Err(_) => {},
-                }
-            },
-        }
-    }
-    fn construct_path(&mut self) -> Result<(), ExitCode> {
-        if self.args.list_path.is_some() {
-            let list = self.args.list_path.clone().unwrap();
-            self.path.push(format!("{}.{}", &list, "json"));
-            return Ok(());
-        } else {
-            return Err(ExitCode::NoListName);
-        }
+    fn construct_path(&mut self) {
+        self.path.push(format!("{}.{}", &self.args.list_path, "json"));
     }
     pub fn init() -> Result<Self, ExitCode> {
         let mut args = Args::parse();
-        if args.default_list {
-            Self::check_env(&mut args);
-        }
         let buffer = String::new();
         let path = PathBuf::new();
-        let mut ctx = Self { args, buffer, path, };
-        ctx.construct_path()?;
         // reverse vector so that pop works
-        if ctx.args.item.is_some() {
-            let mut item = ctx.args.item.unwrap();
-            item.reverse();
-            ctx.args.item = Some(item);
+        match args.mode {
+            Mode::Add(args) => {
+                match args.item_nest_location {
+                    Some(mut coords) => coords.reverse(),
+                    _ => {},
+                }
+            },
+            Mode::Check(mut args) => args.item_location.reverse(),
+            Mode::Edit(mut args) => args.item_location.reverse(),
+            Mode::Move(mut args) => args.item_location.reverse(),
+            Mode::Remove(mut args) => args.item_location.reverse(),
+            Mode::Uncheck(mut args) => args.item_location.reverse(),
+            _ => {},
         }
+        let mut ctx = Self { args, buffer, path, };
+        ctx.construct_path();
         Ok(ctx)
     }
     pub fn check_path(&mut self, condition: PathExitCondition) -> Result<(), ExitCode> {
@@ -92,101 +82,6 @@ impl<'ctx> Ctx {
         self.v_print(format!("{}", code));
         if !self.buffer.is_empty() {
             println!("{}", self.buffer);
-        }
-    }
-    /// Checks if new list should be created
-    pub fn new_list_mode(&mut self) -> Result<bool, ExitCode> {
-        if self.args.new && self.args.list_path.is_some() {
-            Ok(true)
-        } else if self.args.new && self.args.list_path.is_none() {
-            self.v_print("Missing name for list");
-            Err(ExitCode::NoListName)
-        } else {
-            Ok(false)
-        }
-    }
-    /// Checks if new list item should be created
-    pub fn new_item_mode(&mut self) -> Result<bool, ExitCode> {
-        if self.args.add && self.args.list_path.is_some() && self.args.message.is_some() {
-            Ok(true)
-        } else if self.args.add && self.args.list_path.is_none() {
-            Err(ExitCode::NoListName)
-        } else if self.args.add && self.args.message.is_none() {
-            Err(ExitCode::NoListItemMessage(self.path.clone()))
-        } else {
-            Ok(false)
-        }
-    }
-    /// Checks if existing list item should be checked
-    pub fn check_item_mode(&mut self) -> Result<bool, ExitCode> {
-        if self.args.check && self.args.list_path.is_some() && self.args.item.is_some() {
-            Ok(true)
-        } else if self.args.check && self.args.list_path.is_none() {
-            Err(ExitCode::NoListName)
-        } else if self.args.check && self.args.item.is_none() {
-            Err(ExitCode::NoListItemNumber(self.path.clone()))
-        } else {
-            Ok(false)
-        }
-    }
-    /// Checks if existing list item should be checked
-    pub fn uncheck_item_mode(&mut self) -> Result<bool, ExitCode> {
-        if self.args.uncheck && self.args.list_path.is_some() && self.args.item.is_some() {
-            Ok(true)
-        } else if self.args.uncheck && self.args.list_path.is_none() {
-            Err(ExitCode::NoListName)
-        } else if self.args.uncheck && self.args.item.is_none() {
-            Err(ExitCode::NoListItemNumber(self.path.clone()))
-        } else {
-            Ok(false)
-        }
-    }
-    /// Checks if list should be displayed
-    pub fn show_mode(&mut self) -> Result<bool, ExitCode> {
-        if self.args.show && self.args.list_path.is_some() {
-            Ok(true)
-        } else if self.args.show && self.args.list_path.is_none() {
-            Err(ExitCode::NoListName)
-        } else {
-            Ok(false)
-        }
-    }
-    /// Checks if list item should be removed
-    pub fn remove_mode(&mut self) -> Result<bool, ExitCode> {
-        if self.args.remove && self.args.list_path.is_some() && self.args.item.is_some() {
-            Ok(true)
-        } else if self.args.remove && self.args.list_path.is_none() {
-            Err(ExitCode::NoListName)
-        } else if self.args.remove && self.args.item.is_none() {
-            Err(ExitCode::NoListItemNumber(self.path.clone()))
-        } else {
-            Ok(false)
-        }
-    }
-    /// Checks if list item should be edited
-    pub fn edit_mode(&mut self) -> Result<bool, ExitCode> {
-        if self.args.edit && self.args.list_path.is_some() &&
-            self.args.item.is_some() && self.args.message.is_some()
-        {
-            Ok(true)
-        } else if self.args.edit && self.args.list_path.is_none() {
-            Err(ExitCode::NoListName)
-        } else if self.args.edit && self.args.item.is_none() {
-            Err(ExitCode::NoListItemNumber(self.path.clone()))
-        } else if self.args.edit && self.args.message.is_none() {
-            Err(ExitCode::NoListItemMessage(self.path.clone()))
-        } else {
-            Ok(false)
-        }
-    }
-    /// Checks if the list status should be displayed
-    pub fn status_mode(&mut self) -> Result<bool, ExitCode> {
-        if self.args.status && self.args.list_path.is_some() {
-            Ok(true)
-        } else if self.args.status && self.args.list_path.is_none() {
-            Err(ExitCode::NoListName)
-        } else {
-            Ok(false)
         }
     }
 }

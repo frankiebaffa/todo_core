@@ -85,6 +85,7 @@ pub enum PathExitCondition {
     NotExists,
     Ignore,
 }
+#[derive(Clone)]
 pub enum PrintWhich {
     All,
     Complete,

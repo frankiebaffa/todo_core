@@ -5,6 +5,7 @@ mod enums;
 mod item;
 mod list;
 mod utils;
+pub use args::Mode;
 pub use container::Container;
 pub use ctx::Ctx;
 pub use enums::ExitCode;
