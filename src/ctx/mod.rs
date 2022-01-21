@@ -14,7 +14,7 @@ impl<'ctx> Ctx {
     }
     pub fn init() -> Result<Self, ExitCode> {
         let mut args = Args::parse();
-        args = args.reverse_coordinates();
+        args.reverse_coordinates();
         let buffer = String::new();
         let path = PathBuf::new();
         let mut ctx = Self { args, buffer, path, };

@@ -88,35 +88,28 @@ impl Display for Mode {
     }
 }
 impl Mode {
-    fn reverse_coordinates(mut self) -> Self {
+    fn reverse_coordinates(&mut self) {
         match self {
-            Mode::Add(mut mode_args) => {
+            &mut Mode::Add(ref mut mode_args) => {
                 mode_args.item_nest_location.reverse();
-                self = Mode::Add(AddArgs::from(mode_args.clone()));
             },
-            Mode::Check(mut mode_args) => {
+            &mut Mode::Check(ref mut mode_args) => {
                 mode_args.item_location.reverse();
-                self = Mode::Check(CheckArgs::from(mode_args.clone()));
             },
-            Mode::Edit(mut mode_args) => {
+            &mut Mode::Edit(ref mut mode_args) => {
                 mode_args.item_location.reverse();
-                self = Mode::Edit(EditArgs::from(mode_args.clone()));
             },
-            Mode::Move(mut mode_args) => {
+            &mut Mode::Move(ref mut mode_args) => {
                 mode_args.item_location.reverse();
-                self = Mode::Move(MoveArgs::from(mode_args.clone()));
             },
-            Mode::Remove(mut mode_args) => {
+            &mut Mode::Remove(ref mut mode_args) => {
                 mode_args.item_location.reverse();
-                self = Mode::Remove(RemoveArgs::from(mode_args.clone()));
             },
-            Mode::Uncheck(mut mode_args) => {
+            &mut Mode::Uncheck(ref mut mode_args) => {
                 mode_args.item_location.reverse();
-                self  = Mode::Uncheck(UncheckArgs::from(mode_args.clone()));
             },
-            _ => {},
+            &mut Mode::New | &mut Mode::Show(_) => {},
         }
-        self
     }
 }
 fn safe_get_list(arg: &str) -> Result<String, String> {
@@ -151,8 +144,7 @@ pub struct Args {
     pub mode: Mode,
 }
 impl Args {
-    pub fn reverse_coordinates(mut self) -> Self {
-        self.mode = self.mode.reverse_coordinates();
-        return self.clone();
+    pub fn reverse_coordinates(&mut self) {
+        self.mode.reverse_coordinates();
     }
 }
