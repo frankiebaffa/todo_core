@@ -119,13 +119,14 @@ impl Mode {
         self
     }
 }
-fn safe_get_list() -> String {
-    match std::env::var("TODO_LIST") {
-        Ok(s) => s,
-        Err(_) => {
-            println!("{}", ExitCode::NoEnvVar);
-            std::process::exit(ExitCode::NoEnvVar.into());
-        },
+fn safe_get_list(arg: &str) -> Result<String, String> {
+    if arg.is_empty() {
+        match std::env::var("TODO_LIST") {
+            Ok(s) => Ok(s),
+            Err(_) => return Err(ExitCode::NoEnvVar.to_string()),
+        }
+    } else {
+        Ok(arg.to_string())
     }
 }
 /// A todo list manager
@@ -133,8 +134,9 @@ fn safe_get_list() -> String {
 #[clap(about, version, author)]
 pub struct Args {
     // Options
+    // Make the list_path arg require either a string passed or the TODO_LIST env var
     /// The relative or absolute path to the list (w/o file extension)
-    #[clap(short='l', long)]
+    #[clap(short='l', long="list-path", default_value_t = String::new(), parse(try_from_str = safe_get_list))]
     pub list_path: String,
     // Flags
     /// Silences all messages (overrides verbose flag)
