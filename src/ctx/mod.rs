@@ -1,6 +1,5 @@
 use clap::Parser;
 use crate::args::Args;
-use crate::args::Mode;
 use crate::enums::ExitCode;
 use crate::enums::PathExitCondition;
 use std::path::PathBuf;
@@ -15,23 +14,9 @@ impl<'ctx> Ctx {
     }
     pub fn init() -> Result<Self, ExitCode> {
         let mut args = Args::parse();
+        args = args.reverse_coordinates();
         let buffer = String::new();
         let path = PathBuf::new();
-        // reverse vector so that pop works
-        match args.mode {
-            Mode::Add(args) => {
-                match args.item_nest_location {
-                    Some(mut coords) => coords.reverse(),
-                    _ => {},
-                }
-            },
-            Mode::Check(mut args) => args.item_location.reverse(),
-            Mode::Edit(mut args) => args.item_location.reverse(),
-            Mode::Move(mut args) => args.item_location.reverse(),
-            Mode::Remove(mut args) => args.item_location.reverse(),
-            Mode::Uncheck(mut args) => args.item_location.reverse(),
-            _ => {},
-        }
         let mut ctx = Self { args, buffer, path, };
         ctx.construct_path();
         Ok(ctx)
@@ -63,7 +48,6 @@ impl<'ctx> Ctx {
     }
     pub fn print(&mut self, msg: impl AsRef<str>) {
         if !self.buffer.is_empty() {
-            // TODO: Fix buffer line breaking
             self.buffer.push_str("\n");
         }
         self.buffer.push_str(&format!("{}", msg.as_ref()));

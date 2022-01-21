@@ -13,22 +13,15 @@ fn main() {
         println!("{}", e);
         std::process::exit(e.into());
     });
-    // print args if verbose
-    ctx.v_print("==FLAGS==");
-    ctx.v_print(format!("Add      : {}", ctx.args.add));
-    ctx.v_print(format!("Check    : {}", ctx.args.check));
-    ctx.v_print(format!("New      : {}", ctx.args.new));
-    ctx.v_print(format!("Quiet    : {}", ctx.args.quiet));
-    ctx.v_print(format!("Show     : {}", ctx.args.show));
-    ctx.v_print(format!("Verbose  : {}", ctx.args.verbose));
-    ctx.v_print(format!("Uncheck  : {}", ctx.args.uncheck));
-    ctx.v_print("==/FLAGS==");
+    ctx.v_print("==ARGS==");
+    ctx.v_print(&format!("Mode: {}", &ctx.args.mode));
+    ctx.v_print(&format!("Path: {}", &ctx.args.list_path));
+    ctx.v_print("==/ARGS==");
     ctx.v_print("==RUN==");
     // create new list
-    match ctx.args.mode {
-        Mode::New(args) => {
-            let list = ctx.args.list_path.clone().unwrap();
-            ctx.v_print(format!("Creating new list \"{}\"", &list));
+    match ctx.args.mode.clone() {
+        Mode::New => {
+            ctx.v_print(format!("Creating new list \"{}\"", &ctx.args.list_path));
             ctx.check_path(PathExitCondition::Exists)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
             let mut container = Container::create(&mut ctx)
@@ -38,130 +31,100 @@ fn main() {
                 "Created new list \"{}\"", ctx.path.clone().to_str().unwrap()
             ));
         },
-        Mode::Add(args) => {
-            let list = ctx.args.list_path.clone().unwrap();
-            let msg = ctx.args.message.clone().unwrap();
+        Mode::Add(mut args) => {
             ctx.v_print(
                 format!(
                     "Creating new list-item in list \"{}\" with item-message \"{}\"",
-                    list,
-                    msg
+                    &ctx.args.list_path,
+                    &args.item_message,
                 )
             );
             ctx.check_path(PathExitCondition::NotExists)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            let item = if ctx.args.input_item.is_some() {
-                ctx.args.input_item.clone().unwrap()
-            } else {
-                Vec::new()
-            };
-            container.add_item(ctx.args.item_type.clone(), &mut item.clone(), msg);
+            container.add_item(
+                args.item_type,
+                &mut args.item_nest_location,
+                args.item_message,
+                );
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
         },
-        Mode::Check(args) => {
-            let list = ctx.args.list_path.clone().unwrap();
+        Mode::Check(mut args) => {
             ctx.check_path(PathExitCondition::NotExists)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            let item = ctx.args.input_item.clone().unwrap();
-            ctx.v_print(format!("Checking item \"{}\" from list \"{}\"", get_printable_coords(&item), list));
+            ctx.v_print(format!(
+                "Checking item \"{}\" from list \"{}\"",
+                get_printable_coords(&args.item_location),
+                &ctx.args.list_path
+            ));
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            container.check_at(&mut item.clone());
+            container.check_at(&mut args.item_location);
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            ctx.v_print(format!("Checked from list \"{}\"", list));
+            ctx.v_print(format!("Checked from list \"{}\"", &ctx.args.list_path));
         },
-        Mode::Uncheck(args) => {
-            let list = ctx.args.list_path.clone().unwrap();
+        Mode::Uncheck(mut args) => {
             ctx.check_path(PathExitCondition::NotExists)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            let item = ctx.args.input_item.clone().unwrap();
             ctx.v_print(format!(
                 "Unchecking item \"{}\" from list \"{}\"",
-                get_printable_coords(&item), list
+                get_printable_coords(&args.item_location), ctx.args.list_path
             ));
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            container.uncheck_at(&mut item.clone());
+            container.uncheck_at(&mut args.item_location);
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            ctx.v_print(format!("Unchecked from list \"{}\"", list));
+            ctx.v_print(format!("Unchecked from list \"{}\"", ctx.args.list_path));
         },
-        Mode::Edit(args) => {
-            let list = ctx.args.list_path.clone().unwrap();
+        Mode::Edit(mut args) => {
             ctx.check_path(PathExitCondition::NotExists)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            let item = ctx.args.input_item.clone().unwrap();
-            let message = ctx.args.message.clone().unwrap();
             ctx.v_print(format!(
                 "Editing item \"{}\" from list \"{}\"",
-                get_printable_coords(&item), list
+                get_printable_coords(&args.item_location), &ctx.args.list_path
             ));
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            container.edit_at(&mut item.clone(), message);
+            container.edit_at(&mut args.item_location, args.item_message);
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            ctx.v_print(format!("Edited item from list \"{}\"", list));
+            ctx.v_print(format!("Edited item from list \"{}\"", ctx.args.list_path));
         },
-        Mode::Remove(args) => {
-            let list = ctx.args.list_path.clone().unwrap();
+        Mode::Remove(mut args) => {
             ctx.check_path(PathExitCondition::NotExists)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            let mut item = ctx.args.input_item.clone().unwrap();
             ctx.v_print(format!(
                 "Removing item \"{}\" from list \"{}\"",
-                get_printable_coords(&item), list
+                get_printable_coords(&args.item_location),
+                &ctx.args.list_path,
             ));
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            container.remove_at(&mut item);
+            container.remove_at(&mut args.item_location);
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            ctx.v_print(format!("Removed item from list \"{}\"", list));
+            ctx.v_print(format!("Removed item from list \"{}\"", &ctx.args.list_path));
         },
-        Mode::Move(args) => {
-            let list = ctx.args.list_path.clone().unwrap();
+        Mode::Move(mut args) => {
             ctx.check_path(PathExitCondition::NotExists)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            let mut item_loc = ctx.args.input_item.clone().unwrap();
-            let mut end_loc = match ctx.args.output_item.clone() {
-                Some(i) => {
-                    ctx.v_print(format!(
-                        concat!(
-                            "Moving item in list \"{}\" from position ",
-                            "\"{}\" to position \"{}\""
-                        ),
-                        list,
-                        get_printable_coords(&item_loc),
-                        get_printable_coords(&i),
-                    ));
-                    i
-                },
-                None => {
-                    ctx.v_print(format!(
-                        concat!(
-                            "Moving item in list \"{}\" from position ",
-                            "\"{}\" to top-level"
-                        ),
-                        list,
-                        get_printable_coords(&item_loc),
-                    ));
-                    Vec::new()
-                },
-            };
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            container.move_from_to(&mut item_loc, &mut end_loc);
+            container.move_from_to(
+                &mut args.item_location,
+                &mut args.output_location,
+            );
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
             ctx.v_print(format!("Moved item"));
         },
         Mode::Show(args) => {
+            let print_which = args.print_which;
             ctx.check_path(PathExitCondition::NotExists)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
             ctx.v_print("==FILE==");
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
             let mut content = String::new();
-            container.print(&mut content, &ctx.args.print_which);
+            container.print(&mut content, &print_which);
             ctx.print(content);
             ctx.v_print("==/FILE==");
             if args.status {
@@ -171,7 +134,7 @@ fn main() {
                 let mut content = String::new();
                 let mut container = Container::load(&mut ctx)
                     .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-                container.status(&mut content, &ctx.args.print_which);
+                container.status(&mut content, &print_which);
                 ctx.print(content);
                 ctx.v_print("==/STATUS==");
             }

@@ -8,6 +8,7 @@ use std::path::PathBuf;
 pub enum ExitCode {
     Success,
     NoListName,
+    NoEnvVar,
     NoListItemMessage(PathBuf),
     NoListItemNumber(PathBuf),
     FileExists(PathBuf),
@@ -24,6 +25,7 @@ impl Into<i32> for ExitCode {
     fn into(self) -> i32 {
         match self {
             Self::Success => 0,
+            Self::NoEnvVar => 2,
             Self::NoListName => 3,
             Self::NoListItemMessage(_) => 4,
             Self::NoListItemNumber(_) => 5,
@@ -44,6 +46,7 @@ impl Display for ExitCode {
         match self {
             Self::Success => write!(f, "Success"),
             Self::NoListName => f.write_str("No list name for list"),
+            Self::NoEnvVar => f.write_str("Environment variable TODO_LIST is not set"),
             Self::NoListItemMessage(s) => {
                 return f.write_str(&format!("No item-message for list \"{}\"", s.to_str().unwrap()));
             },
