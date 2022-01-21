@@ -136,9 +136,27 @@ impl Item {
         }
         return false;
     }
+    pub fn get_highest_num(&self, mut cmp: usize) {
+        let highest_num = self.sub_items.len() + 1;
+        if highest_num > cmp {
+            cmp = highest_num;
+        }
+        for item in self.sub_items.iter() {
+            item.get_highest_num(cmp);
+        }
+    }
+    fn get_spacing(index: usize, spacing: usize) -> String {
+        let mut s = String::new();
+        let i_len = index.to_string().len();
+        println!("{} : {}", spacing, i_len);
+        for _ in 0..(spacing - i_len) {
+            s.push_str(" ");
+        }
+        return s;
+    }
     pub fn printable(
         &self, content: &mut String, index: &mut usize, level: &mut usize,
-        print_which: &PrintWhich, plain: bool
+        print_which: &PrintWhich, plain: bool, spacing: usize
     ) {
         match print_which {
             PrintWhich::All => {},
@@ -155,7 +173,10 @@ impl Item {
         }
         let mut indent = String::new();
         for _ in 0..level.clone() {
-            indent.push_str("    ");
+            for _ in 0..spacing {
+                indent.push_str(" ");
+            }
+            indent.push_str("      ");
         }
         match self.item_type {
             ItemType::Todo => {
@@ -165,7 +186,10 @@ impl Item {
                             &format!(
                                 "\n{}{} {}",
                                 indent,
-                                color_scheme::success(format!("{}. [x]", index)),
+                                color_scheme::success(format!(
+                                    "{}. {}[x]", index,
+                                    Self::get_spacing(*index, spacing)
+                                )),
                                 self.text
                             )
                         );
@@ -174,7 +198,10 @@ impl Item {
                             &format!(
                                 "\n{}{} {}",
                                 indent,
-                                color_scheme::danger(format!("{}. [ ]", index)),
+                                color_scheme::danger(format!(
+                                    "{}. {}[ ]", index,
+                                    Self::get_spacing(*index, spacing)
+                                )),
                                 self.text
                             )
                         );
@@ -187,9 +214,10 @@ impl Item {
                     };
                     content.push_str(
                         &format!(
-                            "\n{}{}. {} {}",
+                            "\n{}{}. {}{} {}",
                             indent,
                             index,
+                            Self::get_spacing(*index, spacing),
                             chked,
                             self.text
                         )
@@ -200,18 +228,20 @@ impl Item {
                 if !plain {
                     content.push_str(
                         &format!(
-                            "\n{}{}     {}",
+                            "\n{}{} {}    {}",
                             indent,
                             color_scheme::info(format!("{}.", index)),
+                            Self::get_spacing(*index, spacing),
                             self.text
                         )
                     );
                 } else {
                     content.push_str(
                         &format!(
-                            "\n{}{}.     {}",
+                            "\n{}{}. {}    {}",
                             indent,
                             index,
+                            Self::get_spacing(*index, spacing),
                             self.text
                         )
                     );
@@ -220,7 +250,7 @@ impl Item {
         }
         let mut sub_index = 1;
         for sub in self.sub_items.iter() {
-            sub.printable(content, &mut sub_index, &mut (level.add(1)), print_which, plain);
+            sub.printable(content, &mut sub_index, &mut (level.add(1)), print_which, plain, spacing);
             sub_index = sub_index + 1;
         }
     }

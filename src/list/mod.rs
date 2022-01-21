@@ -40,6 +40,17 @@ impl List {
         };
         Ok(json)
     }
+    fn get_highest_num(&self) -> usize {
+        let highest_num = self.items.len() + 1;
+        for item in self.items.iter() {
+            item.get_highest_num(highest_num);
+        }
+        highest_num
+    }
+    fn get_spacing_count(&self) -> usize {
+        let highest_num = self.get_highest_num();
+        return highest_num.to_string().len();
+    }
     pub fn print(&mut self, content: &mut String, print_which: &PrintWhich, plain: bool) {
         let created = format!("{}", self.created.format("%m/%d/%Y %H:%M:%S"));
         let updated = format!("{}", self.last_updated.format("%m/%d/%Y %H:%M:%S"));
@@ -78,8 +89,9 @@ impl List {
             content.push_str("\nThere are no items in this list");
             return;
         }
+        let spacing = self.get_spacing_count();
         for item in self.items.iter() {
-            item.printable(content, &mut index, &mut level, print_which, plain);
+            item.printable(content, &mut index, &mut level, print_which, plain, spacing);
             index = index.add(1);
         }
     }
