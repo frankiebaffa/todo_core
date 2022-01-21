@@ -10,7 +10,17 @@ pub struct Ctx {
 }
 impl<'ctx> Ctx {
     fn construct_path(&mut self) {
-        self.path.push(format!("{}.{}", &self.args.list_path, "json"));
+        let tmp_path = PathBuf::from(format!("{}", &self.args.list_path));
+        match tmp_path.extension() {
+            Some(ext) => {
+                if !ext.eq("json") {
+                    self.path.push(format!("{}.json", &self.args.list_path));
+                } else {
+                    self.path.push(format!("{}", &self.args.list_path));
+                }
+            },
+            None => self.path.push(format!("{}.json", &self.args.list_path)),
+        }
     }
     pub fn init() -> Result<Self, ExitCode> {
         let mut args = Args::parse();
