@@ -1,5 +1,6 @@
 use chrono::DateTime;
 use chrono::Local;
+use crate::color_scheme;
 use crate::enums::PrintWhich;
 use crate::enums::ItemType;
 use serde::Deserialize;
@@ -137,7 +138,7 @@ impl Item {
     }
     pub fn printable(
         &self, content: &mut String, index: &mut usize, level: &mut usize,
-        print_which: &PrintWhich
+        print_which: &PrintWhich, plain: bool
     ) {
         match print_which {
             PrintWhich::All => {},
@@ -158,22 +159,68 @@ impl Item {
         }
         match self.item_type {
             ItemType::Todo => {
-                let chked = if self.checked {
-                    "[x]"
+                if !plain {
+                    if self.checked {
+                        content.push_str(
+                            &format!(
+                                "\n{}{} {}",
+                                indent,
+                                color_scheme::success(format!("{}. [x]", index)),
+                                self.text
+                            )
+                        );
+                    } else {
+                        content.push_str(
+                            &format!(
+                                "\n{}{} {}",
+                                indent,
+                                color_scheme::danger(format!("{}. [ ]", index)),
+                                self.text
+                            )
+                        );
+                    }
                 } else {
-                    "[ ]"
-                };
-                content.push_str(
-                    &format!("\n{}{}. {} {}", indent, index, chked, self.text)
-                );
+                    let chked = if self.checked {
+                        "[x]"
+                    } else {
+                        "[ ]"
+                    };
+                    content.push_str(
+                        &format!(
+                            "\n{}{}. {} {}",
+                            indent,
+                            index,
+                            chked,
+                            self.text
+                        )
+                    );
+                }
             },
             ItemType::Note => {
-                content.push_str(&format!("\n{}{}. {}", indent, index, self.text));
+                if !plain {
+                    content.push_str(
+                        &format!(
+                            "\n{}{}     {}",
+                            indent,
+                            color_scheme::info(format!("{}.", index)),
+                            self.text
+                        )
+                    );
+                } else {
+                    content.push_str(
+                        &format!(
+                            "\n{}{}.     {}",
+                            indent,
+                            index,
+                            self.text
+                        )
+                    );
+                }
             },
         }
         let mut sub_index = 1;
         for sub in self.sub_items.iter() {
-            sub.printable(content, &mut sub_index, &mut (level.add(1)), print_which);
+            sub.printable(content, &mut sub_index, &mut (level.add(1)), print_which, plain);
             sub_index = sub_index + 1;
         }
     }

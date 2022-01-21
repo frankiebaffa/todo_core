@@ -40,6 +40,8 @@ pub struct ShowArgs {
     pub print_which: PrintWhich,
     #[clap(short='s', long)]
     pub status: bool,
+    #[clap(long)]
+    pub plain: bool,
 }
 #[derive(Parser, Clone)]
 pub struct RemoveArgs {
@@ -132,7 +134,7 @@ fn safe_get_list() -> String {
 pub struct Args {
     // Options
     /// The relative or absolute path to the list (w/o file extension)
-    #[clap(short='l', long, default_value_t = safe_get_list())]
+    #[clap(short='l', long)]
     pub list_path: String,
     // Flags
     /// Silences all messages (overrides verbose flag)

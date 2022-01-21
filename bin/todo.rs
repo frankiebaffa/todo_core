@@ -124,7 +124,7 @@ fn main() {
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
             let mut content = String::new();
-            container.print(&mut content, &print_which);
+            container.print(&mut content, &print_which, args.plain);
             ctx.print(content);
             ctx.v_print("==/FILE==");
             if args.status {

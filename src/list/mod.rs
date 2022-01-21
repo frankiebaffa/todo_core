@@ -1,5 +1,6 @@
 use chrono::DateTime;
 use chrono::Local;
+use crate::color_scheme;
 use crate::enums::ExitCode;
 use crate::enums::PrintWhich;
 use crate::enums::ItemType;
@@ -39,11 +40,38 @@ impl List {
         };
         Ok(json)
     }
-    pub fn print(&mut self, content: &mut String, print_which: &PrintWhich) {
-        let created = self.created.format("%m/%d/%Y %H:%M:%S");
-        let updated = self.last_updated.format("%m/%d/%Y %H:%M:%S");
-        content.push_str(&format!("Created On: {}", created));
-        content.push_str(&format!("\nLast Edit : {}", updated));
+    pub fn print(&mut self, content: &mut String, print_which: &PrintWhich, plain: bool) {
+        let created = format!("{}", self.created.format("%m/%d/%Y %H:%M:%S"));
+        let updated = format!("{}", self.last_updated.format("%m/%d/%Y %H:%M:%S"));
+        if !plain {
+            content.push_str(
+                &format!(
+                    "{}{}",
+                    color_scheme::primary("Created On: "),
+                    color_scheme::info(created),
+                )
+            );
+            content.push_str(
+                &format!(
+                    "\n{}{}",
+                    color_scheme::primary("Last Edit : "),
+                    color_scheme::info(updated),
+                )
+            );
+        } else {
+            content.push_str(
+                &format!(
+                    "Created On: {}",
+                    created,
+                )
+            );
+            content.push_str(
+                &format!(
+                    "\nLast Edit : {}",
+                    updated
+                )
+            );
+        }
         let mut level = 0;
         let mut index = 1;
         if self.items.len().eq(&0) {
@@ -51,7 +79,7 @@ impl List {
             return;
         }
         for item in self.items.iter() {
-            item.printable(content, &mut index, &mut level, print_which);
+            item.printable(content, &mut index, &mut level, print_which, plain);
             index = index.add(1);
         }
     }

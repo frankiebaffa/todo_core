@@ -1,4 +1,5 @@
 mod args;
+mod color_scheme;
 mod container;
 mod ctx;
 mod enums;
