@@ -148,7 +148,6 @@ impl Item {
     fn get_spacing(index: usize, spacing: usize) -> String {
         let mut s = String::new();
         let i_len = index.to_string().len();
-        println!("{} : {}", spacing, i_len);
         for _ in 0..(spacing - i_len) {
             s.push_str(" ");
         }
