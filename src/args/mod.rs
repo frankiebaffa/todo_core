@@ -8,8 +8,8 @@ use std::fmt::Formatter;
 use std::fmt::Error as FormatError;
 #[derive(Parser, Clone)]
 pub struct AddArgs {
-    #[clap(short='i', long)]
-    pub item_nest_location: Vec<i32>,
+    #[clap()]
+    pub item_nest_location: Vec<usize>,
     #[clap(short='m', long)]
     pub item_message: String,
     #[clap(short='t', long, default_value_t = ItemType::Todo)]
@@ -17,27 +17,27 @@ pub struct AddArgs {
 }
 #[derive(Parser, Clone)]
 pub struct CheckArgs {
-    #[clap(short='i', long)]
-    pub item_location: Vec<i32>,
+    #[clap()]
+    pub item_location: Vec<usize>,
 }
 #[derive(Parser, Clone)]
 pub struct DisableArgs {
-    #[clap(short='i', long)]
-    pub item_location: Vec<i32>,
+    #[clap()]
+    pub item_location: Vec<usize>,
 }
 #[derive(Parser, Clone)]
 pub struct EditArgs {
-    #[clap(short='i', long)]
-    pub item_location: Vec<i32>,
+    #[clap()]
+    pub item_location: Vec<usize>,
     #[clap(short='m', long)]
     pub item_message: String,
 }
 #[derive(Parser, Clone)]
 pub struct MoveArgs {
-    #[clap(short='i', long)]
-    pub item_location: Vec<i32>,
+    #[clap()]
+    pub item_location: Vec<usize>,
     #[clap(short='o', long)]
-    pub output_location: Vec<i32>,
+    pub output_location: Vec<usize>,
 }
 #[derive(Parser, Clone)]
 pub struct ShowArgs {
@@ -47,16 +47,18 @@ pub struct ShowArgs {
     pub status: bool,
     #[clap(long)]
     pub plain: bool,
+    #[clap(short, long)]
+    pub level: Option<usize>,
 }
 #[derive(Parser, Clone)]
 pub struct RemoveArgs {
-    #[clap(short='i', long)]
-    pub item_location: Vec<i32>,
+    #[clap()]
+    pub item_location: Vec<usize>,
 }
 #[derive(Parser, Clone)]
 pub struct UncheckArgs {
-    #[clap(short='i', long)]
-    pub item_location: Vec<i32>,
+    #[clap()]
+    pub item_location: Vec<usize>,
 }
 #[derive(Subcommand, Clone)]
 #[clap(about, version, author)]

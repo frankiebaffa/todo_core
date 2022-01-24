@@ -52,7 +52,10 @@ impl List {
         let highest_num = self.get_highest_num();
         return highest_num.to_string().len();
     }
-    pub fn print(&mut self, content: &mut String, print_which: &PrintWhich, plain: bool) {
+    pub fn print(
+        &mut self, content: &mut String, print_which: &PrintWhich, plain: bool,
+        max_level: Option<usize>
+    ) {
         let created = format!("{}", self.created.format("%m/%d/%Y %H:%M:%S"));
         let updated = format!("{}", self.last_updated.format("%m/%d/%Y %H:%M:%S"));
         if !plain {
@@ -92,7 +95,10 @@ impl List {
         }
         let spacing = self.get_spacing_count();
         for item in self.items.iter() {
-            item.printable(content, &mut index, &mut level, print_which, plain, spacing);
+            item.printable(
+                content, &mut index, &mut level, print_which, plain, spacing,
+                max_level,
+            );
             index = index.add(1);
         }
     }
@@ -135,7 +141,7 @@ impl List {
             },
         }
     }
-    pub fn alter_check_at(&mut self, status: ItemStatus, indices: &mut Vec<i32>) {
+    pub fn alter_check_at(&mut self, status: ItemStatus, indices: &mut Vec<usize>) {
         let list_item_index = indices.pop().unwrap();
         let mut iter_c = 1;
         for act_item in self.items.iter_mut() {
@@ -147,7 +153,7 @@ impl List {
             iter_c = iter_c + 1;
         }
     }
-    pub fn add_item(&mut self, item_type: ItemType, indices: &mut Vec<i32>, message: impl AsRef<str>) {
+    pub fn add_item(&mut self, item_type: ItemType, indices: &mut Vec<usize>, message: impl AsRef<str>) {
         if indices.len().eq(&0) {
             self.items.push(Item::new(item_type, message));
             self.last_updated = Local::now();
@@ -164,7 +170,7 @@ impl List {
             }
         }
     }
-    pub fn edit_at(&mut self, indices: &mut Vec<i32>, message: impl AsRef<str>) {
+    pub fn edit_at(&mut self, indices: &mut Vec<usize>, message: impl AsRef<str>) {
         let list_item_index = indices.pop().unwrap();
         let mut iter_c = 1;
         for act_item in self.items.iter_mut() {
@@ -176,17 +182,17 @@ impl List {
             iter_c = iter_c + 1;
         }
     }
-    pub fn remove_at(&mut self, indices: &mut Vec<i32>) -> Option<Item> {
+    pub fn remove_at(&mut self, indices: &mut Vec<usize>) -> Option<Item> {
         if indices.len().eq(&1) {
             let item = self.items.remove(
-                (indices.get(0).unwrap().to_owned() as usize) - 1
+                indices.get(0).unwrap().to_owned() - 1
             );
             self.last_updated = Local::now();
             return Some(item);
         } else {
             let list_item_index = indices.pop().unwrap();
             for iter_loc in 1..self.items.len() + 1 {
-                if iter_loc.eq(&(list_item_index as usize)) {
+                if iter_loc.eq(&list_item_index) {
                     let act_item = self.items.get_mut(iter_loc - 1).unwrap();
                     let item = act_item.remove_at(indices);
                     self.last_updated = Local::now();
@@ -196,7 +202,7 @@ impl List {
             return None;
         }
     }
-    fn put_item_at(&mut self, out_loc: &mut Vec<i32>, item: Item) {
+    fn put_item_at(&mut self, out_loc: &mut Vec<usize>, item: Item) {
         if out_loc.len().eq(&0) {
             self.items.push(item);
             self.last_updated = Local::now();
@@ -204,7 +210,7 @@ impl List {
         } else {
             let index = out_loc.pop().unwrap();
             for iter_loc in 1..self.items.len() + 1 {
-                if iter_loc.eq(&(index as usize)) {
+                if iter_loc.eq(&index) {
                     let curr_item = self.items.get_mut(iter_loc - 1).unwrap();
                     curr_item.put_item_at(out_loc, item);
                     self.last_updated = Local::now();
@@ -213,7 +219,7 @@ impl List {
             }
         }
     }
-    pub fn move_from_to(&mut self, in_loc: &mut Vec<i32>, out_loc: &mut Vec<i32>) {
+    pub fn move_from_to(&mut self, in_loc: &mut Vec<usize>, out_loc: &mut Vec<usize>) {
         let rem_item = match self.remove_at(&mut in_loc.clone()) {
             Some(item) => item,
             None => return,

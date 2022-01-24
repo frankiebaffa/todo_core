@@ -28,7 +28,7 @@ impl Item {
             last_updated: Local::now(),
         }
     }
-    pub fn alter_check(&mut self, status: ItemStatus, indices: &mut Vec<i32>) {
+    pub fn alter_check(&mut self, status: ItemStatus, indices: &mut Vec<usize>) {
         if indices.len().eq(&0) {
             self.status = status;
             self.last_updated = Local::now();
@@ -45,7 +45,7 @@ impl Item {
         }
     }
     pub fn add_item(
-        &mut self, item_type: ItemType, indices: &mut Vec<i32>,
+        &mut self, item_type: ItemType, indices: &mut Vec<usize>,
         message: impl AsRef<str>
     ) {
         if indices.len().eq(&0) {
@@ -66,7 +66,7 @@ impl Item {
     pub fn edit(&mut self, message: impl AsRef<str>) {
         self.text = message.as_ref().to_string();
     }
-    pub fn edit_at(&mut self, indices: &mut Vec<i32>, message: impl AsRef<str>) {
+    pub fn edit_at(&mut self, indices: &mut Vec<usize>, message: impl AsRef<str>) {
         if indices.len().eq(&0) {
             self.edit(message);
             self.last_updated = Local::now();
@@ -82,7 +82,7 @@ impl Item {
             }
         }
     }
-    pub fn remove_at(&mut self, indices: &mut Vec<i32>) -> Option<Item> {
+    pub fn remove_at(&mut self, indices: &mut Vec<usize>) -> Option<Item> {
         if indices.len().eq(&1) {
             let index = indices.get(0).unwrap().to_string().parse::<usize>().unwrap();
             let item = self.sub_items.remove(index-1);
@@ -91,7 +91,7 @@ impl Item {
         } else {
             let index = indices.pop().unwrap();
             for iter_loc in 1..self.sub_items.len() + 1 {
-                if iter_loc.eq(&(index as usize)) {
+                if iter_loc.eq(&index) {
                     let item = self.sub_items.get_mut(iter_loc).unwrap();
                     return item.remove_at(indices);
                 }
@@ -99,7 +99,7 @@ impl Item {
             return None;
         }
     }
-    pub fn put_item_at(&mut self, indices: &mut Vec<i32>, item: Item) {
+    pub fn put_item_at(&mut self, indices: &mut Vec<usize>, item: Item) {
         if indices.len().eq(&0) {
             self.sub_items.push(item);
             self.last_updated = Local::now();
@@ -107,7 +107,7 @@ impl Item {
         } else {
             let index = indices.pop().unwrap().to_owned();
             for iter_loc in 1..self.sub_items.len() + 1 {
-                if iter_loc.eq(&(index as usize)) {
+                if iter_loc.eq(&index) {
                     let sub_item = self.sub_items.get_mut(iter_loc).unwrap();
                     sub_item.put_item_at(indices, item);
                     return;
@@ -156,7 +156,8 @@ impl Item {
     }
     pub fn printable(
         &self, content: &mut String, index: &mut usize, level: &mut usize,
-        print_which: &PrintWhich, plain: bool, spacing: usize
+        print_which: &PrintWhich, plain: bool, spacing: usize,
+        max_level: Option<usize>
     ) {
         match print_which {
             PrintWhich::All => {},
@@ -256,13 +257,21 @@ impl Item {
                 }
             },
         }
+        match max_level {
+            Some(max) => {
+                if (*level).eq(&(max - 1)) {
+                    return;
+                }
+            },
+            None => {},
+        }
         let mut sub_index = 1;
         for sub in self.sub_items.iter() {
-            sub.printable(content, &mut sub_index, &mut (level.add(1)), print_which, plain, spacing);
+            sub.printable(content, &mut sub_index, &mut (level.add(1)), print_which, plain, spacing, max_level);
             sub_index = sub_index + 1;
         }
     }
-    pub fn count_complete(&self) -> i32 {
+    pub fn count_complete(&self) -> usize {
         let mut counter = 0;
         if self.item_type.eq(&ItemType::Todo) && self.status.eq(&ItemStatus::Complete) {
             counter = counter + 1;
@@ -272,7 +281,7 @@ impl Item {
         }
         counter
     }
-    pub fn count_incomplete(&self) -> i32 {
+    pub fn count_incomplete(&self) -> usize {
         let mut counter = 0;
         if self.item_type.eq(&ItemType::Todo) && !self.status.eq(&ItemStatus::Incomplete) {
             counter = counter + 1;

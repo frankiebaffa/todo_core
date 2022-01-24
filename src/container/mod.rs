@@ -58,22 +58,22 @@ impl Container {
             list,
         })
     }
-    pub fn check_at(&mut self, indices: &mut Vec<i32>) {
+    pub fn check_at(&mut self, indices: &mut Vec<usize>) {
         self.list.alter_check_at(ItemStatus::Complete, indices);
     }
-    pub fn disable_at(&mut self, indices: &mut Vec<i32>) {
+    pub fn disable_at(&mut self, indices: &mut Vec<usize>) {
         self.list.alter_check_at(ItemStatus::Disabled, indices);
     }
-    pub fn uncheck_at(&mut self, indices: &mut Vec<i32>) {
+    pub fn uncheck_at(&mut self, indices: &mut Vec<usize>) {
         self.list.alter_check_at(ItemStatus::Incomplete, indices);
     }
-    pub fn edit_at(&mut self, indices: &mut Vec<i32>, message: impl AsRef<str>) {
+    pub fn edit_at(&mut self, indices: &mut Vec<usize>, message: impl AsRef<str>) {
         self.list.edit_at(indices, message);
     }
-    pub fn remove_at(&mut self, indices: &mut Vec<i32>) {
+    pub fn remove_at(&mut self, indices: &mut Vec<usize>) {
         self.list.remove_at(indices);
     }
-    pub fn move_from_to(&mut self, in_loc: &mut Vec<i32>, out_loc: &mut Vec<i32>) {
+    pub fn move_from_to(&mut self, in_loc: &mut Vec<usize>, out_loc: &mut Vec<usize>) {
         self.list.move_from_to(in_loc, out_loc);
     }
     pub fn save(&mut self) -> Result<(), ExitCode> {
@@ -96,13 +96,16 @@ impl Container {
         Ok(())
     }
     pub fn add_item(
-        &mut self, item_type: ItemType, indices: &mut Vec<i32>,
+        &mut self, item_type: ItemType, indices: &mut Vec<usize>,
         message: impl AsRef<str>
     ) {
         self.list.add_item(item_type, indices, message);
     }
-    pub fn print(&mut self, content: &mut String, print_which: &PrintWhich, plain: bool) {
-        self.list.print(content, print_which, plain);
+    pub fn print(
+        &mut self, content: &mut String, print_which: &PrintWhich, plain: bool,
+        max_level: Option<usize>
+    ) {
+        self.list.print(content, print_which, plain, max_level);
     }
     pub fn status(&mut self, content: &mut String, print_which: &PrintWhich) {
         self.list.status(content, print_which);
