@@ -15,6 +15,7 @@ pub struct Item {
     pub sub_items: Vec<Item>,
     pub created: DateTime<Local>,
     pub last_updated: DateTime<Local>,
+    pub hidden: bool,
 }
 impl Item {
     pub fn new(item_type: ItemType, text: impl AsRef<str>) -> Self {
@@ -26,6 +27,7 @@ impl Item {
             sub_items: Vec::new(),
             created: Local::now(),
             last_updated: Local::now(),
+            hidden: false,
         }
     }
     pub fn alter_check(&mut self, status: ItemStatus, indices: &mut Vec<usize>) {
@@ -38,6 +40,22 @@ impl Item {
             for item in self.sub_items.iter_mut() {
                 if iter_c.eq(&index) {
                     item.alter_check(status, indices);
+                    break;
+                }
+                iter_c = iter_c + 1;
+            }
+        }
+    }
+    pub fn alter_hidden(&mut self, hidden: bool, indices: &mut Vec<usize>) {
+        if indices.len().eq(&0) {
+            self.hidden = hidden;
+            self.last_updated = Local::now();
+        } else {
+            let index = indices.pop().unwrap();
+            let mut iter_c = 1;
+            for item in self.sub_items.iter_mut() {
+                if iter_c.eq(&index) {
+                    item.alter_hidden(hidden, indices);
                     break;
                 }
                 iter_c = iter_c + 1;
@@ -157,7 +175,7 @@ impl Item {
     pub fn printable(
         &self, content: &mut String, index: &mut usize, level: &mut usize,
         print_which: &PrintWhich, plain: bool, spacing: usize,
-        max_level: Option<usize>
+        max_level: Option<usize>, parent_is_hidden: bool, display_hidden: bool,
     ) {
         match print_which {
             PrintWhich::All => {},
@@ -179,83 +197,86 @@ impl Item {
             }
             indent.push_str("      ");
         }
-        match self.item_type {
-            ItemType::Todo => {
-                if !plain {
-                    let status = format!(
-                        "{}. {}[{}]",
-                        index,
-                        Self::get_spacing(*index, spacing),
-                        self.status.symbol(),
-                    );
-                    match self.status.clone() {
-                        ItemStatus::Complete => {
-                            content.push_str(
-                                &format!(
-                                    "\n{}{} {}",
-                                    indent,
-                                    color_scheme::success(status),
-                                    self.text
-                                )
-                            );
-                        },
-                        ItemStatus::Disabled => {
-                            content.push_str(
-                                &format!(
-                                    "\n{}{} {}",
-                                    indent,
-                                    color_scheme::warning(status),
-                                    self.text,
-                                )
-                            );
-                        },
-                        ItemStatus::Incomplete => {
-                            content.push_str(
-                                &format!(
-                                    "\n{}{} {}",
-                                    indent,
-                                    color_scheme::danger(status),
-                                    self.text,
-                                )
-                            );
-                        },
-                    }
-                } else {
-                    content.push_str(
-                        &format!(
-                            "\n{}{}. {}[{}] {}",
-                            indent,
+        let show_this = (!self.hidden && !parent_is_hidden) || display_hidden;
+        if show_this {
+            match self.item_type {
+                ItemType::Todo => {
+                    if !plain {
+                        let status = format!(
+                            "{}. {}[{}]",
                             index,
                             Self::get_spacing(*index, spacing),
                             self.status.symbol(),
-                            self.text
-                        )
-                    );
-                }
-            },
-            ItemType::Note => {
-                if !plain {
-                    content.push_str(
-                        &format!(
-                            "\n{}{} {}    {}",
-                            indent,
-                            color_scheme::info(format!("{}.", index)),
-                            Self::get_spacing(*index, spacing),
-                            self.text
-                        )
-                    );
-                } else {
-                    content.push_str(
-                        &format!(
-                            "\n{}{}. {}    {}",
-                            indent,
-                            index,
-                            Self::get_spacing(*index, spacing),
-                            self.text
-                        )
-                    );
-                }
-            },
+                        );
+                        match self.status.clone() {
+                            ItemStatus::Complete => {
+                                content.push_str(
+                                    &format!(
+                                        "\n{}{} {}",
+                                        indent,
+                                        color_scheme::success(status),
+                                        self.text
+                                    )
+                                );
+                            },
+                            ItemStatus::Disabled => {
+                                content.push_str(
+                                    &format!(
+                                        "\n{}{} {}",
+                                        indent,
+                                        color_scheme::warning(status),
+                                        self.text,
+                                    )
+                                );
+                            },
+                            ItemStatus::Incomplete => {
+                                content.push_str(
+                                    &format!(
+                                        "\n{}{} {}",
+                                        indent,
+                                        color_scheme::danger(status),
+                                        self.text,
+                                    )
+                                );
+                            },
+                        }
+                    } else {
+                        content.push_str(
+                            &format!(
+                                "\n{}{}. {}[{}] {}",
+                                indent,
+                                index,
+                                Self::get_spacing(*index, spacing),
+                                self.status.symbol(),
+                                self.text
+                            )
+                        );
+                    }
+                },
+                ItemType::Note => {
+                    if !plain {
+                        content.push_str(
+                            &format!(
+                                "\n{}{} {}    {}",
+                                indent,
+                                color_scheme::info(format!("{}.", index)),
+                                Self::get_spacing(*index, spacing),
+                                self.text
+                            )
+                        );
+                    } else {
+                        content.push_str(
+                            &format!(
+                                "\n{}{}. {}    {}",
+                                indent,
+                                index,
+                                Self::get_spacing(*index, spacing),
+                                self.text
+                            )
+                        );
+                    }
+                },
+            }
         }
         match max_level {
             Some(max) => {
@@ -267,7 +288,10 @@ impl Item {
         }
         let mut sub_index = 1;
         for sub in self.sub_items.iter() {
-            sub.printable(content, &mut sub_index, &mut (level.add(1)), print_which, plain, spacing, max_level);
+            sub.printable(
+                content, &mut sub_index, &mut (level.add(1)), print_which,
+                plain, spacing, max_level, !show_this, display_hidden,
+            );
             sub_index = sub_index + 1;
         }
     }

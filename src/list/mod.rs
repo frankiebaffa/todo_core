@@ -54,7 +54,7 @@ impl List {
     }
     pub fn print(
         &mut self, content: &mut String, print_which: &PrintWhich, plain: bool,
-        max_level: Option<usize>
+        max_level: Option<usize>, display_hidden: bool,
     ) {
         let created = format!("{}", self.created.format("%m/%d/%Y %H:%M:%S"));
         let updated = format!("{}", self.last_updated.format("%m/%d/%Y %H:%M:%S"));
@@ -97,7 +97,7 @@ impl List {
         for item in self.items.iter() {
             item.printable(
                 content, &mut index, &mut level, print_which, plain, spacing,
-                max_level,
+                max_level, false, display_hidden,
             );
             index = index.add(1);
         }
@@ -147,6 +147,18 @@ impl List {
         for act_item in self.items.iter_mut() {
             if iter_c.eq(&list_item_index) {
                 act_item.alter_check(status, indices);
+                self.last_updated = Local::now();
+                break;
+            }
+            iter_c = iter_c + 1;
+        }
+    }
+    pub fn alter_hidden_at(&mut self, hidden: bool, indices: &mut Vec<usize>) {
+        let list_item_index = indices.pop().unwrap();
+        let mut iter_c = 1;
+        for act_item in self.items.iter_mut() {
+            if iter_c.eq(&list_item_index) {
+                act_item.alter_hidden(hidden, indices);
                 self.last_updated = Local::now();
                 break;
             }

@@ -33,6 +33,11 @@ pub struct EditArgs {
     pub item_message: String,
 }
 #[derive(Parser, Clone)]
+pub struct HideArgs {
+    #[clap()]
+    pub item_location: Vec<usize>,
+}
+#[derive(Parser, Clone)]
 pub struct MoveArgs {
     #[clap()]
     pub item_location: Vec<usize>,
@@ -49,6 +54,8 @@ pub struct ShowArgs {
     pub plain: bool,
     #[clap(short, long)]
     pub level: Option<usize>,
+    #[clap(long="display-hidden")]
+    pub display_hidden: bool,
 }
 #[derive(Parser, Clone)]
 pub struct RemoveArgs {
@@ -57,6 +64,11 @@ pub struct RemoveArgs {
 }
 #[derive(Parser, Clone)]
 pub struct UncheckArgs {
+    #[clap()]
+    pub item_location: Vec<usize>,
+}
+#[derive(Parser, Clone)]
+pub struct UnhideArgs {
     #[clap()]
     pub item_location: Vec<usize>,
 }
@@ -71,6 +83,8 @@ pub enum Mode {
     Disable(DisableArgs),
     /// Edit the item-text of an existing list-item
     Edit(EditArgs),
+    /// Hide the list item
+    Hide(HideArgs),
     /// Move an existing list-item to a new location
     Move(MoveArgs),
     /// Create a new list
@@ -81,6 +95,8 @@ pub enum Mode {
     Remove(RemoveArgs),
     /// Uncheck an existing list-item
     Uncheck(UncheckArgs),
+    /// Hide the list item
+    Unhide(UnhideArgs),
 }
 impl Display for Mode {
     fn fmt(&self, fmt: &mut Formatter) -> Result<(), FormatError> {
@@ -89,11 +105,13 @@ impl Display for Mode {
             Mode::Check(_) => fmt.write_str("Check"),
             Mode::Disable(_) => fmt.write_str("Disable"),
             Mode::Edit(_) => fmt.write_str("Edit"),
+            Mode::Hide(_) => fmt.write_str("Hide"),
             Mode::Move(_) => fmt.write_str("Move"),
             Mode::New => fmt.write_str("New"),
             Mode::Show(_) => fmt.write_str("Show"),
             Mode::Remove(_) => fmt.write_str("Remove"),
             Mode::Uncheck(_) => fmt.write_str("Uncheck"),
+            Mode::Unhide(_) => fmt.write_str("Unhide"),
         }
     }
 }
@@ -112,6 +130,9 @@ impl Mode {
             &mut Mode::Edit(ref mut mode_args) => {
                 mode_args.item_location.reverse();
             },
+            &mut Mode::Hide(ref mut mode_args) => {
+                mode_args.item_location.reverse();
+            },
             &mut Mode::Move(ref mut mode_args) => {
                 mode_args.item_location.reverse();
             },
@@ -119,6 +140,9 @@ impl Mode {
                 mode_args.item_location.reverse();
             },
             &mut Mode::Uncheck(ref mut mode_args) => {
+                mode_args.item_location.reverse();
+            },
+            &mut Mode::Unhide(ref mut mode_args) => {
                 mode_args.item_location.reverse();
             },
             &mut Mode::New | &mut Mode::Show(_) => {},

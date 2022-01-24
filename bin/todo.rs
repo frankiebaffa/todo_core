@@ -78,6 +78,20 @@ fn main() {
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
             ctx.v_print(format!("Checked from list \"{}\"", &ctx.args.list_path));
         },
+        Mode::Hide(mut args) => {
+            ctx.check_path(PathExitCondition::NotExists)
+                .unwrap_or_else(|e| safe_exit(&mut ctx, e));
+            ctx.v_print(format!(
+                "Hiding item \"{}\" from list \"{}\"",
+                get_printable_coords(&args.item_location),
+                &ctx.args.list_path
+            ));
+            let mut container = Container::load(&mut ctx)
+                .unwrap_or_else(|e| safe_exit(&mut ctx, e));
+            container.hide_at(&mut args.item_location);
+            container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
+            ctx.v_print(format!("Hid from list \"{}\"", &ctx.args.list_path));
+        }
         Mode::Uncheck(mut args) => {
             ctx.check_path(PathExitCondition::NotExists)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
@@ -91,6 +105,20 @@ fn main() {
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
             ctx.v_print(format!("Unchecked from list \"{}\"", ctx.args.list_path));
         },
+        Mode::Unhide(mut args) => {
+            ctx.check_path(PathExitCondition::NotExists)
+                .unwrap_or_else(|e| safe_exit(&mut ctx, e));
+            ctx.v_print(format!(
+                "Unhiding item \"{}\" from list \"{}\"",
+                get_printable_coords(&args.item_location),
+                &ctx.args.list_path
+            ));
+            let mut container = Container::load(&mut ctx)
+                .unwrap_or_else(|e| safe_exit(&mut ctx, e));
+            container.unhide_at(&mut args.item_location);
+            container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
+            ctx.v_print(format!("Unhid from list \"{}\"", &ctx.args.list_path));
+        }
         Mode::Edit(mut args) => {
             ctx.check_path(PathExitCondition::NotExists)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
@@ -138,7 +166,10 @@ fn main() {
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
             let mut content = String::new();
-            container.print(&mut content, &print_which, args.plain, args.level);
+            container.print(
+                &mut content, &print_which, args.plain, args.level,
+                args.display_hidden,
+            );
             ctx.print(content);
             ctx.v_print("==/FILE==");
             if args.status {

@@ -61,6 +61,12 @@ impl Container {
     pub fn check_at(&mut self, indices: &mut Vec<usize>) {
         self.list.alter_check_at(ItemStatus::Complete, indices);
     }
+    pub fn hide_at(&mut self, indices: &mut Vec<usize>) {
+        self.list.alter_hidden_at(true, indices);
+    }
+    pub fn unhide_at(&mut self, indices: &mut Vec<usize>) {
+        self.list.alter_hidden_at(false, indices);
+    }
     pub fn disable_at(&mut self, indices: &mut Vec<usize>) {
         self.list.alter_check_at(ItemStatus::Disabled, indices);
     }
@@ -103,9 +109,9 @@ impl Container {
     }
     pub fn print(
         &mut self, content: &mut String, print_which: &PrintWhich, plain: bool,
-        max_level: Option<usize>
+        max_level: Option<usize>, display_hidden: bool,
     ) {
-        self.list.print(content, print_which, plain, max_level);
+        self.list.print(content, print_which, plain, max_level, display_hidden);
     }
     pub fn status(&mut self, content: &mut String, print_which: &PrintWhich) {
         self.list.status(content, print_which);
