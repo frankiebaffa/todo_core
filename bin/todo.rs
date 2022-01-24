@@ -64,6 +64,20 @@ fn main() {
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
             ctx.v_print(format!("Checked from list \"{}\"", &ctx.args.list_path));
         },
+        Mode::Disable(mut args) => {
+            ctx.check_path(PathExitCondition::NotExists)
+                .unwrap_or_else(|e| safe_exit(&mut ctx, e));
+            ctx.v_print(format!(
+                "Disabling item \"{}\" from list \"{}\"",
+                get_printable_coords(&args.item_location),
+                &ctx.args.list_path
+            ));
+            let mut container = Container::load(&mut ctx)
+                .unwrap_or_else(|e| safe_exit(&mut ctx, e));
+            container.disable_at(&mut args.item_location);
+            container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
+            ctx.v_print(format!("Checked from list \"{}\"", &ctx.args.list_path));
+        },
         Mode::Uncheck(mut args) => {
             ctx.check_path(PathExitCondition::NotExists)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));

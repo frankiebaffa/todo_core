@@ -2,6 +2,7 @@ use chrono::DateTime;
 use chrono::Local;
 use crate::color_scheme;
 use crate::enums::PrintWhich;
+use crate::enums::ItemStatus;
 use crate::enums::ItemType;
 use serde::Deserialize;
 use serde::Serialize;
@@ -9,7 +10,7 @@ use std::ops::Add;
 #[derive(Serialize, Deserialize)]
 pub struct Item {
     pub item_type: ItemType,
-    pub checked: bool,
+    pub status: ItemStatus,
     pub text: String,
     pub sub_items: Vec<Item>,
     pub created: DateTime<Local>,
@@ -20,23 +21,23 @@ impl Item {
         let txt = text.as_ref().to_string();
         Self {
             item_type,
-            checked: false,
+            status: ItemStatus::Incomplete,
             text: txt,
             sub_items: Vec::new(),
             created: Local::now(),
             last_updated: Local::now(),
         }
     }
-    pub fn alter_check(&mut self, checked: bool, indices: &mut Vec<i32>) {
+    pub fn alter_check(&mut self, status: ItemStatus, indices: &mut Vec<i32>) {
         if indices.len().eq(&0) {
-            self.checked = checked;
+            self.status = status;
             self.last_updated = Local::now();
         } else {
             let index = indices.pop().unwrap();
             let mut iter_c = 1;
             for item in self.sub_items.iter_mut() {
                 if iter_c.eq(&index) {
-                    item.alter_check(checked, indices);
+                    item.alter_check(status, indices);
                     break;
                 }
                 iter_c = iter_c + 1;
@@ -115,7 +116,7 @@ impl Item {
         }
     }
     fn has_complete(&self) -> bool {
-        if self.item_type.eq(&ItemType::Todo) && self.checked.eq(&true) {
+        if self.item_type.eq(&ItemType::Todo) && self.status.eq(&ItemStatus::Complete) {
             return true;
         }
         for item in self.sub_items.iter() {
@@ -126,7 +127,7 @@ impl Item {
         return false;
     }
     fn has_incomplete(&self) -> bool {
-        if self.item_type.eq(&ItemType::Todo) && self.checked.eq(&false) {
+        if self.item_type.eq(&ItemType::Todo) && self.status.eq(&ItemStatus::Incomplete) {
             return true;
         }
         for item in self.sub_items.iter() {
@@ -180,44 +181,52 @@ impl Item {
         match self.item_type {
             ItemType::Todo => {
                 if !plain {
-                    if self.checked {
-                        content.push_str(
-                            &format!(
-                                "\n{}{} {}",
-                                indent,
-                                color_scheme::success(format!(
-                                    "{}. {}[x]", index,
-                                    Self::get_spacing(*index, spacing)
-                                )),
-                                self.text
-                            )
-                        );
-                    } else {
-                        content.push_str(
-                            &format!(
-                                "\n{}{} {}",
-                                indent,
-                                color_scheme::danger(format!(
-                                    "{}. {}[ ]", index,
-                                    Self::get_spacing(*index, spacing)
-                                )),
-                                self.text
-                            )
-                        );
+                    let status = format!(
+                        "{}. {}[{}]",
+                        index,
+                        Self::get_spacing(*index, spacing),
+                        self.status.symbol(),
+                    );
+                    match self.status.clone() {
+                        ItemStatus::Complete => {
+                            content.push_str(
+                                &format!(
+                                    "\n{}{} {}",
+                                    indent,
+                                    color_scheme::success(status),
+                                    self.text
+                                )
+                            );
+                        },
+                        ItemStatus::Disabled => {
+                            content.push_str(
+                                &format!(
+                                    "\n{}{} {}",
+                                    indent,
+                                    color_scheme::warning(status),
+                                    self.text,
+                                )
+                            );
+                        },
+                        ItemStatus::Incomplete => {
+                            content.push_str(
+                                &format!(
+                                    "\n{}{} {}",
+                                    indent,
+                                    color_scheme::danger(status),
+                                    self.text,
+                                )
+                            );
+                        },
                     }
                 } else {
-                    let chked = if self.checked {
-                        "[x]"
-                    } else {
-                        "[ ]"
-                    };
                     content.push_str(
                         &format!(
-                            "\n{}{}. {}{} {}",
+                            "\n{}{}. {}[{}] {}",
                             indent,
                             index,
                             Self::get_spacing(*index, spacing),
-                            chked,
+                            self.status.symbol(),
                             self.text
                         )
                     );
@@ -255,7 +264,7 @@ impl Item {
     }
     pub fn count_complete(&self) -> i32 {
         let mut counter = 0;
-        if self.item_type.eq(&ItemType::Todo) && self.checked {
+        if self.item_type.eq(&ItemType::Todo) && self.status.eq(&ItemStatus::Complete) {
             counter = counter + 1;
         }
         for sub in self.sub_items.iter() {
@@ -265,7 +274,7 @@ impl Item {
     }
     pub fn count_incomplete(&self) -> i32 {
         let mut counter = 0;
-        if self.item_type.eq(&ItemType::Todo) && !self.checked {
+        if self.item_type.eq(&ItemType::Todo) && !self.status.eq(&ItemStatus::Incomplete) {
             counter = counter + 1;
         }
         for sub in self.sub_items.iter() {

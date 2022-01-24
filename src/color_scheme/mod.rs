@@ -13,9 +13,6 @@ where
 pub fn primary(message: impl AsRef<str>) -> String {
     fg_colorize(color::Fg(color::Blue), message)
 }
-pub fn secondary(message: impl AsRef<str>) -> String {
-    fg_colorize(color::Fg(color::Black), message)
-}
 pub fn info(message: impl AsRef<str>) -> String {
     fg_colorize(color::Fg(color::Cyan), message)
 }

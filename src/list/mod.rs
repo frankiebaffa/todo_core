@@ -3,6 +3,7 @@ use chrono::Local;
 use crate::color_scheme;
 use crate::enums::ExitCode;
 use crate::enums::PrintWhich;
+use crate::enums::ItemStatus;
 use crate::enums::ItemType;
 use crate::item::Item;
 use serde::Deserialize;
@@ -134,12 +135,12 @@ impl List {
             },
         }
     }
-    pub fn alter_check_at(&mut self, checked: bool, indices: &mut Vec<i32>) {
+    pub fn alter_check_at(&mut self, status: ItemStatus, indices: &mut Vec<i32>) {
         let list_item_index = indices.pop().unwrap();
         let mut iter_c = 1;
         for act_item in self.items.iter_mut() {
             if iter_c.eq(&list_item_index) {
-                act_item.alter_check(checked, indices);
+                act_item.alter_check(status, indices);
                 self.last_updated = Local::now();
                 break;
             }

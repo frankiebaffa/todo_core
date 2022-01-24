@@ -153,3 +153,21 @@ impl FromStr for ItemType {
         }
     }
 }
+#[derive(Serialize, Deserialize, PartialEq, Clone)]
+pub enum ItemStatus {
+    Complete,
+    Disabled,
+    Incomplete,
+}
+impl ItemStatus {
+    pub fn symbol(&self) -> &str {
+        const COMPLETE: &'static str = "x";
+        const DISABLED: &'static str = "-";
+        const INCOMPLETE: &'static str = " ";
+        match self {
+            Self::Complete => COMPLETE,
+            Self::Disabled => DISABLED,
+            Self::Incomplete => INCOMPLETE,
+        }
+    }
+}

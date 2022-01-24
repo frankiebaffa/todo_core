@@ -21,6 +21,11 @@ pub struct CheckArgs {
     pub item_location: Vec<i32>,
 }
 #[derive(Parser, Clone)]
+pub struct DisableArgs {
+    #[clap(short='i', long)]
+    pub item_location: Vec<i32>,
+}
+#[derive(Parser, Clone)]
 pub struct EditArgs {
     #[clap(short='i', long)]
     pub item_location: Vec<i32>,
@@ -60,6 +65,8 @@ pub enum Mode {
     Add(AddArgs),
     /// Check-off an existing list-item
     Check(CheckArgs),
+    /// Disable an existing list-item
+    Disable(DisableArgs),
     /// Edit the item-text of an existing list-item
     Edit(EditArgs),
     /// Move an existing list-item to a new location
@@ -78,6 +85,7 @@ impl Display for Mode {
         match self {
             Mode::Add(_) => fmt.write_str("Add"),
             Mode::Check(_) => fmt.write_str("Check"),
+            Mode::Disable(_) => fmt.write_str("Disable"),
             Mode::Edit(_) => fmt.write_str("Edit"),
             Mode::Move(_) => fmt.write_str("Move"),
             Mode::New => fmt.write_str("New"),
@@ -94,6 +102,9 @@ impl Mode {
                 mode_args.item_nest_location.reverse();
             },
             &mut Mode::Check(ref mut mode_args) => {
+                mode_args.item_location.reverse();
+            },
+            &mut Mode::Disable(ref mut mode_args) => {
                 mode_args.item_location.reverse();
             },
             &mut Mode::Edit(ref mut mode_args) => {

@@ -1,6 +1,7 @@
 use crate::ctx::Ctx;
 use crate::enums::ExitCode;
 use crate::enums::PrintWhich;
+use crate::enums::ItemStatus;
 use crate::enums::ItemType;
 use crate::list::List;
 use std::fs::File;
@@ -58,10 +59,13 @@ impl Container {
         })
     }
     pub fn check_at(&mut self, indices: &mut Vec<i32>) {
-        self.list.alter_check_at(true, indices);
+        self.list.alter_check_at(ItemStatus::Complete, indices);
+    }
+    pub fn disable_at(&mut self, indices: &mut Vec<i32>) {
+        self.list.alter_check_at(ItemStatus::Disabled, indices);
     }
     pub fn uncheck_at(&mut self, indices: &mut Vec<i32>) {
-        self.list.alter_check_at(false, indices);
+        self.list.alter_check_at(ItemStatus::Incomplete, indices);
     }
     pub fn edit_at(&mut self, indices: &mut Vec<i32>, message: impl AsRef<str>) {
         self.list.edit_at(indices, message);
