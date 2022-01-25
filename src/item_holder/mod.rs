@@ -96,6 +96,11 @@ where
                     items.push(item);
                     return None;
                 },
+                ItemAction::Add(item_type, message) => {
+                    let items = self.borrow_items_mut();
+                    items.push(Item::new(item_type, message));
+                    return None;
+                },
                 _ => return None,
             }
         } else if action.dirty_eq(&ItemAction::Remove) && indices.len() == 1 {
