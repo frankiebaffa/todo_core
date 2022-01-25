@@ -4,16 +4,22 @@ version = "1.0.0"
 edition = "2021"
 
 [[bin]]
-name = "todo"
-path = "bin/todo.rs"
+name = "todo-cli"
+path = "bin/todo_cli.rs"
+
+[[bin]]
+name = "todo-tui"
+path = "bin/todo_tui.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "3.0", features = ["derive"] }
+crossterm = "0.22"
 lazy_static = "1.4"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 termion = "1"
+tui = "0.17"

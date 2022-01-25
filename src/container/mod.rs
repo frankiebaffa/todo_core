@@ -1,4 +1,4 @@
-use crate::ctx::Ctx;
+use crate::ctx::GetPath;
 use crate::enums::ExitCode;
 use crate::enums::PrintWhich;
 use crate::list::List;
@@ -12,38 +12,39 @@ pub struct Container {
     pub list: List,
 }
 impl Container {
-    pub fn create(ctx: &mut Ctx) -> Result<Self, ExitCode> {
-        if ctx.path.exists() {
-            return Err(ExitCode::FileExists(ctx.path.clone()));
+    pub fn create(ctx: &mut impl GetPath) -> Result<Self, ExitCode> {
+        let path = ctx.get_path_mut();
+        if path.exists() {
+            return Err(ExitCode::FileExists(path.clone()));
         }
         { // file creation
-            match File::create(&ctx.path) {
+            match File::create(&path) {
                 Ok(_) => {},
-                Err(_) => return Err(ExitCode::FailedToOpen(ctx.path.clone())),
+                Err(_) => return Err(ExitCode::FailedToOpen(path.clone())),
             }
         } // file unlocked
-        let name = ctx.path.file_name().unwrap().to_str().unwrap().to_string();
+        let name = path.file_name().unwrap().to_str().unwrap().to_string();
         let list = List::new(name);
         Ok(Self {
-            path: ctx.path.clone(),
+            path: path.clone(),
             list,
         })
     }
-    pub fn load(ctx: &mut Ctx) -> Result<Self, ExitCode> {
-        let path = ctx.path.clone();
+    pub fn load(ctx: &mut impl GetPath) -> Result<Self, ExitCode> {
+        let mut path = ctx.get_path_mut().clone();
         let mut json = String::new();
         { // file read
             let mut file = match OpenOptions::new()
                 .read(true)
-                .open(&mut ctx.path)
+                .open(&mut path)
             {
                 Ok(f) => f,
-                Err(_) => return Err(ExitCode::FailedToOpen(ctx.path.clone())),
+                Err(_) => return Err(ExitCode::FailedToOpen(path.clone())),
             };
             match file.read_to_string(&mut json) {
                 Ok(_) => {},
                 Err(_) => {
-                    return Err(ExitCode::FailedToRead(ctx.path.clone()));
+                    return Err(ExitCode::FailedToRead(path.clone()));
                 },
             }
         } // file locked

@@ -10,6 +10,7 @@ mod utils;
 pub use args::Mode;
 pub use container::Container;
 pub use ctx::Ctx;
+pub use ctx::GetPath;
 pub use enums::ExitCode;
 pub use enums::PathExitCondition;
 pub use enums::ItemStatus;

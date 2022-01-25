@@ -3,6 +3,10 @@ use crate::args::Args;
 use crate::enums::ExitCode;
 use crate::enums::PathExitCondition;
 use std::path::PathBuf;
+pub trait GetPath {
+    fn get_path(&self) -> &PathBuf;
+    fn get_path_mut(&mut self) -> &mut PathBuf;
+}
 pub struct Ctx {
     pub args: Args,
     pub buffer: String,
@@ -77,5 +81,13 @@ impl<'ctx> Ctx {
         if !self.buffer.is_empty() {
             println!("{}", self.buffer);
         }
+    }
+}
+impl GetPath for Ctx {
+    fn get_path(&self) -> &PathBuf {
+        return &self.path;
+    }
+    fn get_path_mut(&mut self) -> &mut PathBuf {
+        return &mut self.path;
     }
 }

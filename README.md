@@ -8,6 +8,7 @@ _ _ _
 
 This list is mimicked in the [TODO](./TODO.json) file.
 
-- [ ] FIX: The `move` subcommand can overwrite items
+- [x] FIX: The `move` subcommand can overwrite items
 	- This should be disallowed
+- [ ] ADD: Develop a tui version of the application
 
