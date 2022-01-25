@@ -1,8 +1,6 @@
 use crate::ctx::Ctx;
 use crate::enums::ExitCode;
 use crate::enums::PrintWhich;
-use crate::enums::ItemStatus;
-use crate::enums::ItemType;
 use crate::list::List;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -58,30 +56,6 @@ impl Container {
             list,
         })
     }
-    pub fn check_at(&mut self, indices: &mut Vec<usize>) {
-        self.list.alter_check_at(ItemStatus::Complete, indices);
-    }
-    pub fn hide_at(&mut self, indices: &mut Vec<usize>) {
-        self.list.alter_hidden_at(true, indices);
-    }
-    pub fn unhide_at(&mut self, indices: &mut Vec<usize>) {
-        self.list.alter_hidden_at(false, indices);
-    }
-    pub fn disable_at(&mut self, indices: &mut Vec<usize>) {
-        self.list.alter_check_at(ItemStatus::Disabled, indices);
-    }
-    pub fn uncheck_at(&mut self, indices: &mut Vec<usize>) {
-        self.list.alter_check_at(ItemStatus::Incomplete, indices);
-    }
-    pub fn edit_at(&mut self, indices: &mut Vec<usize>, message: impl AsRef<str>) {
-        self.list.edit_at(indices, message);
-    }
-    pub fn remove_at(&mut self, indices: &mut Vec<usize>) {
-        self.list.remove_at(indices);
-    }
-    pub fn move_from_to(&mut self, in_loc: &mut Vec<usize>, out_loc: &mut Vec<usize>) {
-        self.list.move_from_to(in_loc, out_loc);
-    }
     pub fn save(&mut self) -> Result<(), ExitCode> {
         let json = self.list.to_json()?;
         { // file open:write
@@ -100,12 +74,6 @@ impl Container {
             }
         } // file locked
         Ok(())
-    }
-    pub fn add_item(
-        &mut self, item_type: ItemType, indices: &mut Vec<usize>,
-        message: impl AsRef<str>
-    ) {
-        self.list.add_item(item_type, indices, message);
     }
     pub fn print(
         &mut self, content: &mut String, print_which: &PrintWhich, plain: bool,

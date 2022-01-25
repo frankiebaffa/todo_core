@@ -1,9 +1,12 @@
 use todo::Container;
+use todo::ItemStatus;
 use todo::Ctx;
 use todo::ExitCode;
 use todo::Mode;
 use todo::PathExitCondition;
 use todo::get_printable_coords;
+use todo::ItemAction;
+use todo::ItemActor;
 fn safe_exit(ctx: &mut Ctx, e: ExitCode) -> ! {
     ctx.flush(&e);
     std::process::exit(e.into());
@@ -43,11 +46,10 @@ fn main() {
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            container.add_item(
-                args.item_type,
+            container.act_on_item_at(
                 &mut args.item_nest_location,
-                args.item_message,
-                );
+                ItemAction::Add(args.item_type, args.item_message),
+            );
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
         },
         Mode::Check(mut args) => {
@@ -60,7 +62,10 @@ fn main() {
             ));
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            container.check_at(&mut args.item_location);
+            container.act_on_item_at(
+                &mut args.item_location,
+                ItemAction::AlterStatus(ItemStatus::Complete),
+            );
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
             ctx.v_print(format!("Checked from list \"{}\"", &ctx.args.list_path));
         },
@@ -74,7 +79,10 @@ fn main() {
             ));
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            container.disable_at(&mut args.item_location);
+            container.act_on_item_at(
+                &mut args.item_location,
+                ItemAction::AlterStatus(ItemStatus::Disabled),
+            );
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
             ctx.v_print(format!("Checked from list \"{}\"", &ctx.args.list_path));
         },
@@ -88,7 +96,10 @@ fn main() {
             ));
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            container.hide_at(&mut args.item_location);
+            container.act_on_item_at(
+                &mut args.item_location,
+                ItemAction::AlterHidden(true),
+            );
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
             ctx.v_print(format!("Hid from list \"{}\"", &ctx.args.list_path));
         }
@@ -101,7 +112,10 @@ fn main() {
             ));
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            container.uncheck_at(&mut args.item_location);
+            container.act_on_item_at(
+                &mut args.item_location,
+                ItemAction::AlterStatus(ItemStatus::Incomplete),
+            );
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
             ctx.v_print(format!("Unchecked from list \"{}\"", ctx.args.list_path));
         },
@@ -115,7 +129,10 @@ fn main() {
             ));
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            container.unhide_at(&mut args.item_location);
+            container.act_on_item_at(
+                &mut args.item_location,
+                ItemAction::AlterHidden(false),
+            );
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
             ctx.v_print(format!("Unhid from list \"{}\"", &ctx.args.list_path));
         }
@@ -128,7 +145,10 @@ fn main() {
             ));
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            container.edit_at(&mut args.item_location, args.item_message);
+            container.act_on_item_at(
+                &mut args.item_location,
+                ItemAction::Edit(args.item_message),
+            );
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
             ctx.v_print(format!("Edited item from list \"{}\"", ctx.args.list_path));
         },
@@ -142,7 +162,10 @@ fn main() {
             ));
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            container.remove_at(&mut args.item_location);
+            container.act_on_item_at(
+                &mut args.item_location,
+                ItemAction::Remove,
+            );
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
             ctx.v_print(format!("Removed item from list \"{}\"", &ctx.args.list_path));
         },
@@ -151,9 +174,13 @@ fn main() {
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
             let mut container = Container::load(&mut ctx)
                 .unwrap_or_else(|e| safe_exit(&mut ctx, e));
-            container.move_from_to(
+            let item = container.act_on_item_at(
                 &mut args.item_location,
+                ItemAction::Remove,
+            ).unwrap();
+            container.act_on_item_at(
                 &mut args.output_location,
+                ItemAction::Put(item),
             );
             container.save().unwrap_or_else(|e| safe_exit(&mut ctx, e));
             ctx.v_print(format!("Moved item"));
