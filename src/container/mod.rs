@@ -1,4 +1,4 @@
-use crate::ctx::GetPath;
+use crate::traits::GetPath;
 use crate::enums::ExitCode;
 use crate::enums::PrintWhich;
 use crate::list::List;
