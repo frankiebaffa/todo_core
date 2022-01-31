@@ -1,14 +1,39 @@
-use chrono::DateTime;
-use chrono::Local;
-use crate::color_scheme;
-use crate::enums::ExitCode;
-use crate::enums::PrintWhich;
-use crate::item::Item;
-use serde::Deserialize;
-use serde::Serialize;
-use serde_json::from_str as from_json_string;
-use serde_json::to_string as to_json_string;
-use std::ops::Add;
+use {
+    chrono::{
+        DateTime,
+        Local,
+    },
+    crate::{
+        traits::Terminal,
+        enums::{
+            ExitCode,
+            PrintWhich,
+        },
+        item::Item,
+    },
+    crossterm::{
+        QueueableCommand,
+        style::{
+            Color,
+            SetForegroundColor,
+        },
+    },
+    serde::{
+        Deserialize,
+        Serialize,
+    },
+    serde_json::{
+        from_str as from_json_string,
+        to_string as to_json_string,
+    },
+    std::{
+        io::{
+            Error as IOError,
+            Write,
+        },
+        ops::Add,
+    },
+};
 #[derive(Serialize, Deserialize)]
 pub struct List {
     pub name: String,
@@ -51,54 +76,49 @@ impl List {
         return highest_num.to_string().len();
     }
     pub fn print(
-        &mut self, content: &mut String, print_which: &PrintWhich, plain: bool,
+        &mut self, ctx: &mut impl Terminal, print_which: &PrintWhich, plain: bool,
         max_level: Option<usize>, display_hidden: bool,
-    ) {
+    ) -> Result<(), IOError> {
         let created = format!("{}", self.created.format("%m/%d/%Y %H:%M:%S"));
         let updated = format!("{}", self.last_updated.format("%m/%d/%Y %H:%M:%S"));
         if !plain {
-            content.push_str(
-                &format!(
-                    "{}{}",
-                    color_scheme::primary("Created On: "),
-                    color_scheme::info(created),
-                )
-            );
-            content.push_str(
-                &format!(
-                    "\n{}{}",
-                    color_scheme::primary("Last Edit : "),
-                    color_scheme::info(updated),
-                )
-            );
+            ctx.queue_cmd(SetForegroundColor(Color::Blue))?;
+            ctx.write_str("Created On: ")?;
+            ctx.queue_cmd(SetForegroundColor(Color::Cyan))?;
+            ctx.write_str(format!("{}", created))?;
+            ctx.queue_cmd(SetForegroundColor(Color::Blue))?;
+            ctx.write_str("\nLast Edit : ")?;
+            ctx.queue_cmd(SetForegroundColor(Color::Cyan))?;
+            ctx.write_str(format!("{}", updated))?;
         } else {
-            content.push_str(
+            ctx.write_str(
                 &format!(
                     "Created On: {}",
                     created,
                 )
-            );
-            content.push_str(
+            )?;
+            ctx.write_str(
                 &format!(
                     "\nLast Edit : {}",
                     updated
                 )
-            );
+            )?;
         }
         let mut level = 0;
         let mut index = 1;
         if self.items.len().eq(&0) {
-            content.push_str("\nThere are no items in this list");
-            return;
+            ctx.write("\n There are no items in this list")?;
+            return Ok(());
         }
         let spacing = self.get_spacing_count();
         for item in self.items.iter() {
             item.printable(
-                content, &mut index, &mut level, print_which, plain, spacing,
+                ctx, &mut index, &mut level, print_which, plain, spacing,
                 max_level, false, display_hidden,
-            );
+            )?;
             index = index.add(1);
         }
+        Ok(())
     }
     pub fn status(&mut self, content: &mut String, print_which: &PrintWhich) {
         match print_which {

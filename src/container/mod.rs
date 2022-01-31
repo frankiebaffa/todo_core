@@ -1,4 +1,5 @@
 use crate::traits::GetPath;
+use crate::traits::Terminal;
 use crate::enums::ExitCode;
 use crate::enums::PrintWhich;
 use crate::list::List;
@@ -77,10 +78,10 @@ impl Container {
         Ok(())
     }
     pub fn print(
-        &mut self, content: &mut String, print_which: &PrintWhich, plain: bool,
+        &mut self, ctx: &mut impl Terminal, print_which: &PrintWhich, plain: bool,
         max_level: Option<usize>, display_hidden: bool,
     ) {
-        self.list.print(content, print_which, plain, max_level, display_hidden);
+        self.list.print(ctx, print_which, plain, max_level, display_hidden);
     }
     pub fn status(&mut self, content: &mut String, print_which: &PrintWhich) {
         self.list.status(content, print_which);

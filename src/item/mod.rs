@@ -1,12 +1,30 @@
-use chrono::DateTime;
-use chrono::Local;
-use crate::color_scheme;
-use crate::enums::PrintWhich;
-use crate::enums::ItemStatus;
-use crate::enums::ItemType;
-use serde::Deserialize;
-use serde::Serialize;
-use std::ops::Add;
+use {
+    chrono::{
+        DateTime,
+        Local,
+    },
+    crate::{
+        traits::Terminal,
+        enums::{
+            PrintWhich,
+            ItemStatus,
+            ItemType,
+        },
+    },
+    crossterm::style::{
+        Color,
+        ResetColor,
+        SetForegroundColor,
+    },
+    serde::{
+        Deserialize,
+        Serialize,
+    },
+    std::{
+        io::Error as IOError,
+        ops::Add,
+    },
+};
 #[derive(Serialize, Deserialize)]
 pub struct Item {
     pub item_type: ItemType,
@@ -70,10 +88,10 @@ impl Item {
         return s;
     }
     pub fn printable(
-        &self, content: &mut String, index: &mut usize, level: &mut usize,
+        &self, ctx: &mut impl Terminal, index: &mut usize, level: &mut usize,
         print_which: &PrintWhich, plain: bool, spacing: usize,
         max_level: Option<usize>, parent_is_hidden: bool, display_hidden: bool,
-    ) {
+    ) -> Result<(), IOError> {
         match print_which {
             PrintWhich::All => {},
             PrintWhich::Complete => {
@@ -107,70 +125,47 @@ impl Item {
                         );
                         match self.status.clone() {
                             ItemStatus::Complete => {
-                                content.push_str(
-                                    &format!(
-                                        "\n{}{} {}",
-                                        indent,
-                                        color_scheme::success(status),
-                                        self.text
-                                    )
-                                );
+                                ctx.queue_cmd(SetForegroundColor(Color::Green))?;
                             },
                             ItemStatus::Disabled => {
-                                content.push_str(
-                                    &format!(
-                                        "\n{}{} {}",
-                                        indent,
-                                        color_scheme::warning(status),
-                                        self.text,
-                                    )
-                                );
+                                ctx.queue_cmd(SetForegroundColor(Color::Yellow))?;
                             },
                             ItemStatus::Incomplete => {
-                                content.push_str(
-                                    &format!(
-                                        "\n{}{} {}",
-                                        indent,
-                                        color_scheme::danger(status),
-                                        self.text,
-                                    )
-                                );
+                                ctx.queue_cmd(SetForegroundColor(Color::Red))?;
                             },
                         }
+                        ctx.write_str(format!("\n{}{} ", indent, status))?;
+                        ctx.queue_cmd(ResetColor)?;
+                        ctx.write_str(format!("{}", self.text));
                     } else {
-                        content.push_str(
-                            &format!(
-                                "\n{}{}. {}[{}] {}",
-                                indent,
-                                index,
-                                Self::get_spacing(*index, spacing),
-                                self.status.symbol(),
-                                self.text
-                            )
-                        );
+                        ctx.write_str(format!(
+                            "\n{}{}. {}[{}] {}",
+                            indent,
+                            index,
+                            Self::get_spacing(*index, spacing),
+                            self.status.symbol(),
+                            self.text
+                        ))?;
                     }
                 },
                 ItemType::Note => {
                     if !plain {
-                        content.push_str(
-                            &format!(
-                                "\n{}{} {}    {}",
-                                indent,
-                                color_scheme::info(format!("{}.", index)),
-                                Self::get_spacing(*index, spacing),
-                                self.text
-                            )
-                        );
+                        ctx.queue_cmd(SetForegroundColor(Color::Cyan))?;
+                        ctx.write_str(format!("\n{} {}.", indent, index))?;
+                        ctx.queue_cmd(ResetColor)?;
+                        ctx.write_str(format!(
+                            "{}    {}",
+                            Self::get_spacing(*index, spacing),
+                            self.text
+                        ));
                     } else {
-                        content.push_str(
-                            &format!(
-                                "\n{}{}. {}    {}",
-                                indent,
-                                index,
-                                Self::get_spacing(*index, spacing),
-                                self.text
-                            )
-                        );
+                        ctx.write_str(format!(
+                            "\n{}{}. {}    {}",
+                            indent,
+                            index,
+                            Self::get_spacing(*index, spacing),
+                            self.text
+                        ));
                     }
                 },
             }
@@ -186,11 +181,12 @@ impl Item {
         let mut sub_index = 1;
         for sub in self.sub_items.iter() {
             sub.printable(
-                content, &mut sub_index, &mut (level.add(1)), print_which,
+                ctx, &mut sub_index, &mut (level.add(1)), print_which,
                 plain, spacing, max_level, !show_this, display_hidden,
-            );
+            )?;
             sub_index = sub_index + 1;
         }
+        Ok(())
     }
     pub fn count_complete(&self) -> usize {
         let mut counter = 0;
