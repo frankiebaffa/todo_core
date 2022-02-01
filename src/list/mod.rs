@@ -11,12 +11,9 @@ use {
         },
         item::Item,
     },
-    crossterm::{
-        QueueableCommand,
-        style::{
-            Color,
-            SetForegroundColor,
-        },
+    crossterm::style::{
+        Color,
+        SetForegroundColor,
     },
     serde::{
         Deserialize,
@@ -27,10 +24,7 @@ use {
         to_string as to_json_string,
     },
     std::{
-        io::{
-            Error as IOError,
-            Write,
-        },
+        io::Error as IOError,
         ops::Add,
     },
 };
@@ -107,7 +101,7 @@ impl List {
         let mut level = 0;
         let mut index = 1;
         if self.items.len().eq(&0) {
-            ctx.write("\n There are no items in this list")?;
+            ctx.write_str("\n There are no items in this list")?;
             return Ok(());
         }
         let spacing = self.get_spacing_count();
