@@ -6,15 +6,24 @@ mod item;
 mod item_holder;
 mod list;
 mod utils;
-pub use container::Container;
-pub use traits::GetPath;
-pub use enums::ExitCode;
-pub use enums::PathExitCondition;
-pub use enums::ItemStatus;
-pub use enums::ItemType;
-pub use enums::PrintWhich;
-pub use item::Item;
-pub use item_holder::ItemAction;
-pub use item_holder::ItemActor;
-pub use list::List;
-pub use utils::get_printable_coords;
+pub use {
+    container::Container,
+    enums::{
+        ExitCode,
+        ItemStatus,
+        ItemType,
+        PathExitCondition,
+        PrintWhich,
+    },
+    item::Item,
+    item_holder::{
+        ItemAction,
+        ItemActor,
+    },
+    list::List,
+    traits::{
+        GetPath,
+        Terminal,
+    },
+    utils::get_printable_coords,
+};
