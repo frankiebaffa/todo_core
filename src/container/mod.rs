@@ -1,13 +1,28 @@
-use crate::traits::GetPath;
-use crate::traits::Terminal;
-use crate::enums::ExitCode;
-use crate::enums::PrintWhich;
-use crate::list::List;
-use std::fs::File;
-use std::fs::OpenOptions;
-use std::io::Read;
-use std::io::Write;
-use std::path::PathBuf;
+use {
+    crate::{
+        traits::{
+            GetPath,
+            Terminal,
+        },
+        enums::{
+            ExitCode,
+            PrintWhich,
+        },
+        list::List,
+    },
+    std::{
+        fs::{
+            File,
+            OpenOptions,
+        },
+        io::{
+            Write,
+            Read,
+            Error as IOError,
+        },
+        path::PathBuf,
+    },
+};
 pub struct Container {
     pub path: PathBuf,
     pub list: List,
@@ -80,8 +95,8 @@ impl Container {
     pub fn print(
         &mut self, ctx: &mut impl Terminal, print_which: &PrintWhich, plain: bool,
         max_level: Option<usize>, display_hidden: bool,
-    ) {
-        self.list.print(ctx, print_which, plain, max_level, display_hidden);
+    ) -> Result<(), IOError> {
+        self.list.print(ctx, print_which, plain, max_level, display_hidden)
     }
     pub fn status(&mut self, content: &mut String, print_which: &PrintWhich) {
         self.list.status(content, print_which);
