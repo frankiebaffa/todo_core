@@ -1,5 +1,4 @@
 mod args;
-mod color_scheme;
 mod container;
 mod traits;
 mod enums;
