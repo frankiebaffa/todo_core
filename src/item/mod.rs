@@ -96,12 +96,12 @@ impl Item {
             PrintWhich::All => {},
             PrintWhich::Complete => {
                 if !self.has_complete() {
-                    return;
+                    return Ok(());
                 }
             },
             PrintWhich::Incomplete => {
                 if !self.has_incomplete() {
-                    return;
+                    return Ok(());
                 }
             },
         }
@@ -136,7 +136,7 @@ impl Item {
                         }
                         ctx.write_str(format!("\n{}{} ", indent, status))?;
                         ctx.queue_cmd(ResetColor)?;
-                        ctx.write_str(format!("{}", self.text));
+                        ctx.write_str(format!("{}", self.text))?;
                     } else {
                         ctx.write_str(format!(
                             "\n{}{}. {}[{}] {}",
@@ -157,7 +157,7 @@ impl Item {
                             "{}    {}",
                             Self::get_spacing(*index, spacing),
                             self.text
-                        ));
+                        ))?;
                     } else {
                         ctx.write_str(format!(
                             "\n{}{}. {}    {}",
@@ -165,7 +165,7 @@ impl Item {
                             index,
                             Self::get_spacing(*index, spacing),
                             self.text
-                        ));
+                        ))?;
                     }
                 },
             }
@@ -173,7 +173,7 @@ impl Item {
         match max_level {
             Some(max) => {
                 if (*level).eq(&(max - 1)) {
-                    return;
+                    return Ok(());
                 }
             },
             None => {},
