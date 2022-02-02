@@ -147,7 +147,8 @@ impl Item {
                 },
                 ItemType::Note => {
                     if !plain {
-                        let status_line = format!("\n{}{}. ", indent, index);
+                        let status = format!("\n{}{}. ", indent, index);
+                        let status_line = styler::bold(status);
                         ctx.write_str(styler::info(status_line))?;
                         ctx.write_str(format!(
                             "{}    {}",
