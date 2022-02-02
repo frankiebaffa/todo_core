@@ -4,7 +4,6 @@ use {
         Local,
     },
     crate::{
-        traits::Terminal,
         enums::{
             PrintWhich,
             ItemStatus,
@@ -84,7 +83,7 @@ impl Item {
         return s;
     }
     pub fn printable(
-        &self, ctx: &mut impl Terminal, index: &mut usize, level: &mut usize,
+        &self, output: &mut String, index: &mut usize, level: &mut usize,
         print_which: &PrintWhich, plain: bool, spacing: usize,
         max_level: Option<usize>, parent_is_hidden: bool, display_hidden: bool,
     ) -> Result<(), IOError> {
@@ -124,45 +123,45 @@ impl Item {
                         );
                         match self.status.clone() {
                             ItemStatus::Complete => {
-                                ctx.write_str(styler::success(status_line))?;
+                                output.push_str(&styler::success(status_line));
                             },
                             ItemStatus::Disabled => {
-                                ctx.write_str(styler::warning(status_line))?;
+                                output.push_str(&styler::warning(status_line));
                             },
                             ItemStatus::Incomplete => {
-                                ctx.write_str(styler::danger(status_line))?;
+                                output.push_str(&styler::danger(status_line));
                             },
                         }
-                        ctx.write_str(format!("{}", self.text))?;
+                        output.push_str(&format!("{}", self.text));
                     } else {
-                        ctx.write_str(format!(
+                        output.push_str(&format!(
                             "\n{}{}. {}[{}] {}",
                             indent,
                             index,
                             Self::get_spacing(*index, spacing),
                             self.status.symbol(),
                             self.text
-                        ))?;
+                        ));
                     }
                 },
                 ItemType::Note => {
                     if !plain {
                         let status = format!("\n{}{}. ", indent, index);
                         let status_line = styler::bold(status);
-                        ctx.write_str(styler::info(status_line))?;
-                        ctx.write_str(format!(
+                        output.push_str(&styler::info(status_line));
+                        output.push_str(&format!(
                             "{}    {}",
                             Self::get_spacing(*index, spacing),
                             self.text
-                        ))?;
+                        ));
                     } else {
-                        ctx.write_str(format!(
+                        output.push_str(&format!(
                             "\n{}{}. {}    {}",
                             indent,
                             index,
                             Self::get_spacing(*index, spacing),
                             self.text
-                        ))?;
+                        ));
                     }
                 },
             }
@@ -178,7 +177,7 @@ impl Item {
         let mut sub_index = 1;
         for sub in self.sub_items.iter() {
             sub.printable(
-                ctx, &mut sub_index, &mut (level.add(1)), print_which,
+                output, &mut sub_index, &mut (level.add(1)), print_which,
                 plain, spacing, max_level, !show_this, display_hidden,
             )?;
             sub_index = sub_index + 1;

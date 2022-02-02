@@ -1,29 +1,9 @@
 use {
-    chrono::{
-        DateTime,
-        Local,
-    },
-    crate::{
-        traits::Terminal,
-        enums::{
-            ExitCode,
-            PrintWhich,
-        },
-        item::Item,
-        utils::styler,
-    },
-    serde::{
-        Deserialize,
-        Serialize,
-    },
-    serde_json::{
-        from_str as from_json_string,
-        to_string as to_json_string,
-    },
-    std::{
-        io::Error as IOError,
-        ops::Add,
-    },
+    chrono::{ DateTime, Local, },
+    crate::{ enums::{ ExitCode, PrintWhich, }, item::Item, utils::styler, },
+    serde::{ Deserialize, Serialize, },
+    serde_json::{ from_str as from_json_string, to_string as to_json_string, },
+    std::{ io::Error as IOError, ops::Add, },
 };
 #[derive(Serialize, Deserialize)]
 pub struct List {
@@ -67,30 +47,30 @@ impl List {
         return highest_num.to_string().len();
     }
     pub fn print(
-        &mut self, ctx: &mut impl Terminal, print_which: &PrintWhich, plain: bool,
+        &mut self, output: &mut String, print_which: &PrintWhich, plain: bool,
         max_level: Option<usize>, display_hidden: bool,
     ) -> Result<(), IOError> {
         let created = format!("{}", self.created.format("%m/%d/%Y %H:%M:%S"));
         let updated = format!("{}", self.last_updated.format("%m/%d/%Y %H:%M:%S"));
         if !plain {
-            ctx.write_str(styler::primary(styler::bold("Created On: ")))?;
-            ctx.write_str(styler::info(styler::italic(format!("{}", created))))?;
-            ctx.write_str(styler::primary(styler::bold("\nLast Edit : ")))?;
-            ctx.write_str(styler::info(styler::italic(format!("{}", updated))))?;
+            output.push_str(&styler::primary(styler::bold("Created On: ")));
+            output.push_str(&styler::info(styler::italic(format!("{}", created))));
+            output.push_str(&styler::primary(styler::bold("\nLast Edit : ")));
+            output.push_str(&styler::info(styler::italic(format!("{}", updated))));
         } else {
-            ctx.write_str(format!("Created On: {}", created))?;
-            ctx.write_str(format!("\nLast Edit : {}", updated))?;
+            output.push_str(&format!("Created On: {}", created));
+            output.push_str(&format!("\nLast Edit : {}", updated));
         }
         let mut level = 0;
         let mut index = 1;
         if self.items.len().eq(&0) {
-            ctx.write_str("\n There are no items in this list")?;
+            output.push_str("\n There are no items in this list");
             return Ok(());
         }
         let spacing = self.get_spacing_count();
         for item in self.items.iter() {
             item.printable(
-                ctx, &mut index, &mut level, print_which, plain, spacing,
+                output, &mut index, &mut level, print_which, plain, spacing,
                 max_level, false, display_hidden,
             )?;
             index = index.add(1);

@@ -1,25 +1,12 @@
 use {
     crate::{
-        traits::{
-            GetPath,
-            Terminal,
-        },
-        enums::{
-            ExitCode,
-            PrintWhich,
-        },
+        traits::GetPath,
+        enums::{ ExitCode, PrintWhich, },
         list::List,
     },
     std::{
-        fs::{
-            File,
-            OpenOptions,
-        },
-        io::{
-            Write,
-            Read,
-            Error as IOError,
-        },
+        fs::{ File, OpenOptions, },
+        io::{ Write, Read, Error as IOError, },
         path::PathBuf,
     },
 };
@@ -93,10 +80,10 @@ impl Container {
         Ok(())
     }
     pub fn print(
-        &mut self, ctx: &mut impl Terminal, print_which: &PrintWhich, plain: bool,
+        &mut self, output: &mut String, print_which: &PrintWhich, plain: bool,
         max_level: Option<usize>, display_hidden: bool,
     ) -> Result<(), IOError> {
-        self.list.print(ctx, print_which, plain, max_level, display_hidden)
+        self.list.print(output, print_which, plain, max_level, display_hidden)
     }
     pub fn status(&mut self, content: &mut String, print_which: &PrintWhich) {
         self.list.status(content, print_which);

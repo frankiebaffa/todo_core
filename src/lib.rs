@@ -8,22 +8,10 @@ mod list;
 mod utils;
 pub use {
     container::Container,
-    enums::{
-        ExitCode,
-        ItemStatus,
-        ItemType,
-        PathExitCondition,
-        PrintWhich,
-    },
+    enums::{ ExitCode, ItemStatus, ItemType, PathExitCondition, PrintWhich, },
     item::Item,
-    item_holder::{
-        ItemAction,
-        ItemActor,
-    },
+    item_holder::{ ItemAction, ItemActor, },
     list::List,
-    traits::{
-        GetPath,
-        Terminal,
-    },
+    traits::GetPath,
     utils::get_printable_coords,
 };
