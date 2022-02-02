@@ -6,19 +6,29 @@ use crate::item::Item;
 use crate::list::List;
 use std::borrow::BorrowMut;
 pub trait ItemHolder {
+    fn update_date(&mut self);
     fn borrow_items_mut(&mut self) -> &mut Vec<Item>;
 }
 impl ItemHolder for Item {
+    fn update_date(&mut self) {
+        self.last_updated = Local::now();
+    }
     fn borrow_items_mut(&mut self) -> &mut Vec<Item> {
         self.sub_items.borrow_mut()
     }
 }
 impl ItemHolder for List {
+    fn update_date(&mut self) {
+        self.last_updated = Local::now();
+    }
     fn borrow_items_mut(&mut self) -> &mut Vec<Item> {
         self.items.borrow_mut()
     }
 }
 impl ItemHolder for Container {
+    fn update_date(&mut self) {
+        self.list.last_updated = Local::now();
+    }
     fn borrow_items_mut(&mut self) -> &mut Vec<Item> {
         self.list.items.borrow_mut()
     }
@@ -70,9 +80,10 @@ impl ActOnItem for Item {
                     self.sub_items.push(item);
                 },
             }
-            self.last_updated = Local::now();
+            self.update_date();
             return None;
         } else {
+            self.update_date();
             return self.act_on_item_at(indices, action);
         }
     }
@@ -92,11 +103,13 @@ where
         if indices.len() == 0 {
             match action {
                 ItemAction::Put(item) => {
+                    self.update_date();
                     let items = self.borrow_items_mut();
                     items.push(item);
                     return None;
                 },
                 ItemAction::Add(item_type, message) => {
+                    self.update_date();
                     let items = self.borrow_items_mut();
                     items.push(Item::new(item_type, message));
                     return None;
@@ -104,6 +117,7 @@ where
                 _ => return None,
             }
         } else if action.dirty_eq(&ItemAction::Remove) && indices.len() == 1 {
+            self.update_date();
             let items = self.borrow_items_mut();
             let remove_index = indices.pop().unwrap();
             let mut item = items.remove(remove_index - 1);
@@ -115,7 +129,9 @@ where
         for i in 1..(items.len() + 1) {
             if i == item_index {
                 let item = items.get_mut(i - 1).unwrap();
-                return item.act_on_item(indices, action);
+                let out_item = item.act_on_item(indices, action);
+                self.update_date();
+                return out_item;
             }
         }
         return None;
