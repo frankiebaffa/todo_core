@@ -10,11 +10,7 @@ use {
             ItemStatus,
             ItemType,
         },
-    },
-    crossterm::style::{
-        Color,
-        ResetColor,
-        SetForegroundColor,
+        utils::styler,
     },
     serde::{
         Deserialize,
@@ -123,19 +119,20 @@ impl Item {
                             Self::get_spacing(*index, spacing),
                             self.status.symbol(),
                         );
+                        let status_line = styler::bold(
+                            format!("\n{}{} ", indent, status)
+                        );
                         match self.status.clone() {
                             ItemStatus::Complete => {
-                                ctx.queue_cmd(SetForegroundColor(Color::Green))?;
+                                ctx.write_str(styler::success(status_line))?;
                             },
                             ItemStatus::Disabled => {
-                                ctx.queue_cmd(SetForegroundColor(Color::Yellow))?;
+                                ctx.write_str(styler::warning(status_line))?;
                             },
                             ItemStatus::Incomplete => {
-                                ctx.queue_cmd(SetForegroundColor(Color::Red))?;
+                                ctx.write_str(styler::danger(status_line))?;
                             },
                         }
-                        ctx.write_str(format!("\n{}{} ", indent, status))?;
-                        ctx.queue_cmd(ResetColor)?;
                         ctx.write_str(format!("{}", self.text))?;
                     } else {
                         ctx.write_str(format!(
@@ -150,9 +147,8 @@ impl Item {
                 },
                 ItemType::Note => {
                     if !plain {
-                        ctx.queue_cmd(SetForegroundColor(Color::Cyan))?;
-                        ctx.write_str(format!("\n{} {}.", indent, index))?;
-                        ctx.queue_cmd(ResetColor)?;
+                        let status_line = format!("\n{} {}.", indent, index);
+                        ctx.write_str(styler::info(status_line))?;
                         ctx.write_str(format!(
                             "{}    {}",
                             Self::get_spacing(*index, spacing),

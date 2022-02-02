@@ -10,10 +10,7 @@ use {
             PrintWhich,
         },
         item::Item,
-    },
-    crossterm::style::{
-        Color,
-        SetForegroundColor,
+        utils::styler,
     },
     serde::{
         Deserialize,
@@ -76,27 +73,13 @@ impl List {
         let created = format!("{}", self.created.format("%m/%d/%Y %H:%M:%S"));
         let updated = format!("{}", self.last_updated.format("%m/%d/%Y %H:%M:%S"));
         if !plain {
-            ctx.queue_cmd(SetForegroundColor(Color::Blue))?;
-            ctx.write_str("Created On: ")?;
-            ctx.queue_cmd(SetForegroundColor(Color::Cyan))?;
-            ctx.write_str(format!("{}", created))?;
-            ctx.queue_cmd(SetForegroundColor(Color::Blue))?;
-            ctx.write_str("\nLast Edit : ")?;
-            ctx.queue_cmd(SetForegroundColor(Color::Cyan))?;
-            ctx.write_str(format!("{}", updated))?;
+            ctx.write_str(styler::primary(styler::bold("Created On: ")))?;
+            ctx.write_str(styler::info(styler::italic(format!("{}", created))))?;
+            ctx.write_str(styler::primary(styler::bold("\nLast Edit : ")))?;
+            ctx.write_str(styler::info(styler::italic(format!("{}", updated))))?;
         } else {
-            ctx.write_str(
-                &format!(
-                    "Created On: {}",
-                    created,
-                )
-            )?;
-            ctx.write_str(
-                &format!(
-                    "\nLast Edit : {}",
-                    updated
-                )
-            )?;
+            ctx.write_str(format!("Created On: {}", created))?;
+            ctx.write_str(format!("\nLast Edit : {}", updated))?;
         }
         let mut level = 0;
         let mut index = 1;
