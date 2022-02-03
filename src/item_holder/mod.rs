@@ -36,6 +36,7 @@ impl ItemHolder for Container {
 pub enum ItemAction {
     AlterStatus(ItemStatus),
     AlterHidden(bool),
+    ToggleHidden,
     Add(ItemType, String),
     CycleStatus,
     Edit(String),
@@ -52,6 +53,7 @@ impl ItemAction {
             Self::Remove => 5,
             Self::Put(_) => 6,
             Self::CycleStatus => 7,
+            Self::ToggleHidden => 8,
         }
     }
     fn dirty_eq(&self, rhs: &Self) -> bool {
@@ -88,6 +90,9 @@ impl ActOnItem for Item {
                         ItemStatus::Incomplete => ItemStatus::Complete,
                     };
                     self.status = next_status;
+                },
+                ItemAction::ToggleHidden => {
+                    self.hidden = !self.hidden;
                 },
             }
             self.update_date();
