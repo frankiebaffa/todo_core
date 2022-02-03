@@ -20,7 +20,7 @@ use {
         ops::Add,
     },
 };
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq)]
 pub struct Item {
     pub item_type: ItemType,
     pub status: ItemStatus,
