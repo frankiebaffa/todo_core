@@ -37,6 +37,7 @@ pub enum ItemAction {
     AlterStatus(ItemStatus),
     AlterHidden(bool),
     Add(ItemType, String),
+    CycleStatus,
     Edit(String),
     Remove,
     Put(Item),
@@ -44,12 +45,13 @@ pub enum ItemAction {
 impl ItemAction {
     fn to_int(&self) -> i8 {
         match self {
-            ItemAction::AlterStatus(_) => 1,
-            ItemAction::AlterHidden(_) => 2,
-            ItemAction::Add(_, _) => 3,
-            ItemAction::Edit(_) => 4,
-            ItemAction::Remove => 5,
-            ItemAction::Put(_) => 6,
+            Self::AlterStatus(_) => 1,
+            Self::AlterHidden(_) => 2,
+            Self::Add(_, _) => 3,
+            Self::Edit(_) => 4,
+            Self::Remove => 5,
+            Self::Put(_) => 6,
+            Self::CycleStatus => 7,
         }
     }
     fn dirty_eq(&self, rhs: &Self) -> bool {
@@ -78,6 +80,14 @@ impl ActOnItem for Item {
                 ItemAction::Remove => {},
                 ItemAction::Put(item) => {
                     self.sub_items.push(item);
+                },
+                ItemAction::CycleStatus => {
+                    let next_status = match self.status {
+                        ItemStatus::Complete => ItemStatus::Disabled,
+                        ItemStatus::Disabled => ItemStatus::Incomplete,
+                        ItemStatus::Incomplete => ItemStatus::Complete,
+                    };
+                    self.status = next_status;
                 },
             }
             self.update_date();
