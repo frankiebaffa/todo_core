@@ -42,6 +42,7 @@ pub enum ItemAction {
     Edit(String),
     Remove,
     Put(Item),
+    ToggleType,
 }
 impl ItemAction {
     fn to_int(&self) -> i8 {
@@ -54,6 +55,7 @@ impl ItemAction {
             Self::Put(_) => 6,
             Self::CycleStatus => 7,
             Self::ToggleHidden => 8,
+            Self::ToggleType => 9,
         }
     }
     fn dirty_eq(&self, rhs: &Self) -> bool {
@@ -90,6 +92,13 @@ impl ActOnItem for Item {
                         ItemStatus::Incomplete => ItemStatus::Complete,
                     };
                     self.status = next_status;
+                },
+                ItemAction::ToggleType => {
+                    let next_type = match self.item_type {
+                        ItemType::Todo => ItemType::Note,
+                        ItemType::Note => ItemType::Todo,
+                    };
+                    self.item_type = next_type;
                 },
                 ItemAction::ToggleHidden => {
                     self.hidden = !self.hidden;
